@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My website</title>
+    <style>
+      html, body, #stage {
+        background-color: black !important;
+      }
+
+      #animated-background {
+          width: 100vw;
+          height: 100vh;
+          display: block;
+          position: absolute;
+          top: 0px;
+          left: 0px;
+          z-index: -1;
+          background-color: black;
+      }
+
+      #stage {
+        position: relative;
+        isolation: isolate;
+      }
+
+      html, body, #root, #stage {
+        min-height: 100vh;
+      }
+
+      #root {
+        display: flex;
+        flex-direction: column;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="stage">
+      <canvas id="animated-background"></canvas>
+      <div id="root"></div>
+    </div>
+    <script type="module" src="/src/index.jsx"></script>
+  </body>
+</html>
