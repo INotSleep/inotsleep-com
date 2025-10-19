@@ -1,5 +1,7 @@
 import { Box } from "@mui/material";
 import { Outlet } from "react-router-dom";
+import { Header } from "../objects/Header";
+import { Footer } from "../objects/Footer";
 
 
 export function RootLayout() {
@@ -8,9 +10,12 @@ export function RootLayout() {
             minHeight: '100dvh',
             display: 'flex',
             flexDirection: 'column',
-            justifyContent: 'space-evenly',
+            justifyContent: 'space-between',
             alignItems: 'center',
+            gap: 2,
         }}>
+        <Header />
         <Outlet />
+        <Footer />
     </Box>;
 }
