@@ -1,0 +1,6 @@
+{
+    "title": "404 - Page Not Found",
+    "subtitle": "Requested page <code>{{path}}</code> was not found.",
+    "goBackButton": "Go Back",
+    "homeButton": "Home"
+}

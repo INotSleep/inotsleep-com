@@ -3,10 +3,14 @@ import { initReactI18next } from "react-i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
 
 import enHome from "./resources/en/home.json";
+import enNotFound from "./resources/en/notfound.json";
+import enHeader from "./resources/en/header.json";
 
 const resources = {
     en: {
-        home: enHome
+        home: enHome,
+        notfound: enNotFound,
+        header: enHeader
     }
 };
 
@@ -16,8 +20,13 @@ i18n
     .init({
         resources,
         fallbackLng: "en",
-        supportedLngs: ["en"],
-        ns: ["home"],
+        supportedLngs: [
+            "en"
+        ],
+        ns: [
+            "home",
+            "notfound"
+        ],
         defaultNS: "home",
         interpolation: {
             escapeValue: false
