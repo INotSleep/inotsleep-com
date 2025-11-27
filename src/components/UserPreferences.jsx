@@ -119,7 +119,7 @@ function UserPreferences() {
                     }
                 }}
             >
-                {LANGUAGES.map((lang) => (
+                {LANGUAGES.sort((a, b) => a.code.localeCompare(b.code)).map((lang) => (
                     <MenuItem
                         key={lang.code}
                         onClick={() => handleSelectLang(lang.code)}

@@ -1,0 +1,12 @@
+{
+    "title": "Projects",
+    "loading_projects": "Loading projects…",
+    "loading_error": "Failed to load projects:",
+    "no_projects": "No projects yet.",
+    "updating_projects": "Updating…",
+
+    "updating_project": "Updating…",
+    "readme_title": "About this project",
+    "open_wiki": "Open wiki",
+    "loading_project": "Loading project…"
+}

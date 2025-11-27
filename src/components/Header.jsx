@@ -1,6 +1,7 @@
 import { useLocation, Link as RouterLink } from "react-router-dom";
 import { Paper, Box, Typography, Button } from "@mui/material";
 import UserPreferences from "./UserPreferences.jsx";
+import UserIcon from "./UserIcon.jsx";
 import { useTranslation } from "react-i18next";
 
 export function Header() {
@@ -80,7 +81,8 @@ export function Header() {
                                         "&:hover": {
                                             backgroundColor: "action.selected"
                                         }
-                                    })
+                                    }),
+                                    whiteSpace: "nowrap"
                                 }}
                             >
                                 {link.label}
@@ -88,8 +90,8 @@ export function Header() {
                         );
                     })}
                 </Box>
-            </Box>
-
+            </Box>   
+            <UserIcon />
             <UserPreferences />
         </Paper>
     );

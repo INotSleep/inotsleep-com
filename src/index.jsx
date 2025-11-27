@@ -7,6 +7,19 @@ import { RouterProvider } from 'react-router-dom';
 import { router } from './router.jsx';
 import './i18n';
 import { ColorModeContext } from './theme/ColorModeContext.jsx';
+import {
+    QueryClient,
+    QueryClientProvider,
+} from "@tanstack/react-query";
+
+const queryClient = new QueryClient({
+    defaultOptions: {
+        queries: {
+            refetchOnWindowFocus: false,
+            retry: false
+        },
+    },
+});
 
 function getInitialMode() {
     if (typeof window === "undefined") {
@@ -52,8 +65,12 @@ function ThemeWrapper() {
     );
 }
 
+
+
 createRoot(document.getElementById("root")).render(
     <StrictMode>
-        <ThemeWrapper />
+        <QueryClientProvider client={queryClient}>
+            <ThemeWrapper />
+        </QueryClientProvider>
     </StrictMode>
 );

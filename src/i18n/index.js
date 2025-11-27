@@ -5,12 +5,14 @@ import LanguageDetector from "i18next-browser-languagedetector";
 import enHome from "./resources/en/home.json";
 import enNotFound from "./resources/en/notfound.json";
 import enHeader from "./resources/en/header.json";
+import enProjects from "./resources/en/projects.json";
 
 const resources = {
     en: {
         home: enHome,
         notfound: enNotFound,
-        header: enHeader
+        header: enHeader,
+        projects: enProjects
     }
 };
 
@@ -25,7 +27,9 @@ i18n
         ],
         ns: [
             "home",
-            "notfound"
+            "notfound",
+            "projects",
+            "header"
         ],
         defaultNS: "home",
         interpolation: {

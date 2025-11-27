@@ -8,6 +8,8 @@ export default function NotFound() {
     const navigate = useNavigate();
     const { pathname } = useLocation();
 
+    const path = new URLSearchParams(window.location.search).get("path") || pathname
+
     return (
             <Paper elevation={2} sx={{
                     maxWidth: 'min(70ch, 90vw)',
@@ -24,7 +26,7 @@ export default function NotFound() {
                         <Trans
                             ns="notfound"
                             i18nKey="subtitle"
-                            values={{ path: pathname }}
+                            values={{ path: path }}
                             components={{
                                 code: <code />,
                                 strong: <strong />
