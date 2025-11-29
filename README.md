@@ -1,1 +1,4 @@
-### Just my little website :3
+# inotsleep.com
+
+My little website.
+Made with React and love <3
