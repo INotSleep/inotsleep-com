@@ -1,6 +1,6 @@
 import { Box, Stack, Typography, Button, Paper } from '@mui/material';
-import { Link as RouterLink, useLocation, useNavigate, useRouteError } from 'react-router-dom';
-import SearchOffOutlinedIcon from '@mui/icons-material/SearchOffOutlined'; // убери импорт, если нет иконок
+import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
+import SearchOffOutlinedIcon from '@mui/icons-material/SearchOffOutlined';
 import { Trans, useTranslation } from 'react-i18next';
 
 export default function NotFound() {

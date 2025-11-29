@@ -18,26 +18,26 @@ export default function MarkdownView({ children }) {
         <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             components={{
-                h1: ({ node, ...props }) => (
+                h1: ({ ...props }) => (
                     <Typography variant="h3" gutterBottom {...props} />
                 ),
-                h2: ({ node, ...props }) => (
+                h2: ({ ...props }) => (
                     <Typography variant="h4" gutterBottom {...props} />
                 ),
-                h3: ({ node, ...props }) => (
+                h3: ({ ...props }) => (
                     <Typography variant="h5" gutterBottom {...props} />
                 ),
-                p: ({ node, ...props }) => (
+                p: ({ ...props }) => (
                     <Typography variant="body1" paragraph {...props} />
                 ),
-                a: ({ node, ...props }) => (
+                a: ({ ...props }) => (
                     <MuiLink
                         {...props}
                         target="_blank"
                         rel="noopener noreferrer"
                     />
                 ),
-                li: ({ node, ...props }) => (
+                li: ({ ...props }) => (
                     <li>
                         <Typography
                             component="span"
@@ -47,7 +47,7 @@ export default function MarkdownView({ children }) {
                     </li>
                 ),
 
-                img: ({ node, ...props }) => (
+                img: ({ ...props }) => (
                     <Box
                         component="img"
                         sx={{
@@ -62,7 +62,7 @@ export default function MarkdownView({ children }) {
                     />
                 ),
 
-                code: ({ node, className, children, ...props }) =>{
+                code: ({ className, children, ...props }) =>{
                     const raw = String(children).replace(/\n$/, "");
                     const match = /language-(\w+)/.exec(className || "");
                     const hasLineBreak = raw.includes("\n");

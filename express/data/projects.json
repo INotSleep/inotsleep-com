@@ -1,0 +1,19 @@
+{
+    "en": [
+        {
+            "id": "insutils",
+            "name": "INSUtils",
+            "description": "A utility toolkit for Paper plugin development that provides a base plugin class, annotation-driven configuration, centralized i18n, and other helpers to reduce boilerplate.",
+            "buttons": [
+                {
+                    "label": "GitHub",
+                    "url": "https://github.com/inotsleep/utils"
+                },
+                {
+                    "label": "Maven",
+                    "url": "https://nexus.inotsleep.com/#browse/browse:maven-public:com%2Finotsleep%2Futils"
+                }
+            ]
+        }
+    ]
+}

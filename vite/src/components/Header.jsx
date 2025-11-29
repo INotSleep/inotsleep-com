@@ -12,7 +12,7 @@ export function Header() {
     const links = [
         { to: "/", label: t("home") },
         { to: "/projects", label: t("projects") },
-        { to: "/i18n", label: t("i18nHub") }
+        // { to: "/i18n", label: t("i18nHub") }
     ];
 
     return (

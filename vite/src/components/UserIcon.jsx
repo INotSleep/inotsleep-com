@@ -71,7 +71,7 @@ export default function UserIcon() {
         try {
             await axios.post("/api/auth/logout");
         } catch {
-
+            // Ignore
         }
 
         setUser(null);
