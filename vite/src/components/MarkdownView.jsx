@@ -1,6 +1,7 @@
 import React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import rehypeSlug from "rehype-slug";
 import {
     Typography,
     Link as MuiLink,
@@ -9,6 +10,7 @@ import {
 } from "@mui/material";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark, oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
+import Heading from "./Heading";
 
 export default function MarkdownView({ children }) {
     const theme = useTheme();
@@ -17,27 +19,22 @@ export default function MarkdownView({ children }) {
     return (
         <ReactMarkdown
             remarkPlugins={[remarkGfm]}
+            rehypePlugins={[rehypeSlug]}
             components={{
-                h1: ({ ...props }) => (
-                    <Typography variant="h3" gutterBottom {...props} />
-                ),
-                h2: ({ ...props }) => (
-                    <Typography variant="h4" gutterBottom {...props} />
-                ),
-                h3: ({ ...props }) => (
-                    <Typography variant="h5" gutterBottom {...props} />
-                ),
-                p: ({ ...props }) => (
+                h1: (props) => <Heading level={1} {...props} />,
+                h2: (props) => <Heading level={2} {...props} />,
+                h3: (props) => <Heading level={3} {...props} />,
+                p: ({ node, ...props }) => (
                     <Typography variant="body1" paragraph {...props} />
                 ),
-                a: ({ ...props }) => (
+                a: ({ node, ...props }) => (
                     <MuiLink
                         {...props}
                         target="_blank"
                         rel="noopener noreferrer"
                     />
                 ),
-                li: ({ ...props }) => (
+                li: ({ node, ...props }) => (
                     <li>
                         <Typography
                             component="span"
@@ -47,7 +44,7 @@ export default function MarkdownView({ children }) {
                     </li>
                 ),
 
-                img: ({ ...props }) => (
+                img: ({ node, ...props }) => (
                     <Box
                         component="img"
                         sx={{
@@ -62,7 +59,7 @@ export default function MarkdownView({ children }) {
                     />
                 ),
 
-                code: ({ className, children, ...props }) =>{
+                code: ({ node, className, children, ...props }) => {
                     const raw = String(children).replace(/\n$/, "");
                     const match = /language-(\w+)/.exec(className || "");
                     const hasLineBreak = raw.includes("\n");
@@ -85,8 +82,31 @@ export default function MarkdownView({ children }) {
                             </Box>
                         );
                     }
+
                     return (
-                        <Box sx={{ my: 1.5 }}>
+                        <Box
+                            sx={(theme) => ({
+                                my: 1.5,
+                                // сам SyntaxHighlighter рендерит <pre>, красим скроллбар у него
+                                "& > div": {
+                                    maxHeight: "70vh",
+                                    overflow: "auto",
+                                    scrollbarWidth: "thin", // Firefox
+                                    scrollbarColor: `${theme.palette.primary.main} ${theme.palette.background.paper}`,
+                                    "&::-webkit-scrollbar": {
+                                        width: 8,
+                                        height: 8,
+                                    },
+                                    "&::-webkit-scrollbar-track": {
+                                        backgroundColor: theme.palette.background.paper,
+                                    },
+                                    "&::-webkit-scrollbar-thumb": {
+                                        backgroundColor: theme.palette.primary.main,
+                                        borderRadius: 4,
+                                    },
+                                },
+                            })}
+                        >
                             <SyntaxHighlighter
                                 PreTag="div"
                                 language={match ? match[1] : undefined}

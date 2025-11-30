@@ -4,6 +4,7 @@ import NotFound from './routes/NotFound.jsx';
 import RootLayout from './layouts/RootLayout.jsx';
 import Projects from './routes/Projects.jsx';
 import ProjectDetails from './routes/ProjectDetails.jsx';
+import Wiki from './routes/Wiki.jsx';
 
 export const router = createBrowserRouter(
     [
@@ -18,15 +19,25 @@ export const router = createBrowserRouter(
 
                 {
                     path: 'projects',
-                    element: <Outlet / >,
+                    element: <Outlet />,
                     children: [
                         {
                             index: true,
                             element: <Projects />,
                         },
                         {
-                            element: <ProjectDetails />,
-                            path: ':projectId'
+                            element: <Outlet />,
+                            path: ':projectId',
+                            children: [
+                                {
+                                    index: true,
+                                    element: <ProjectDetails />,
+                                },
+                                {
+                                    path: "wiki/*",
+                                    element: <Wiki />
+                                }
+                            ]
                         }
                     ]
                 },

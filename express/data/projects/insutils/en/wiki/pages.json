@@ -1,13 +1,110 @@
 [
-    {
+  {
+    "type": "index",
+    "label": "Home"
+  },
+  {
+    "type": "category",
+    "label": "Getting started",
+    "id": "getting-started",
+    "children": [
+      {
+        "type": "page",
+        "label": "Overview",
+        "id": "overview"
+      },
+      {
+        "type": "page",
+        "label": "Installation",
+        "id": "installation"
+      },
+      {
         "type": "category",
-        "name": "Development",
+        "label": "Configuration",
+        "id": "configuration",
         "children": [
-            {
-                "type": "page",
-                "name": "API Reference",
-                "id": "api"
-            }
+          {
+            "type": "page",
+            "label": "Basic config",
+            "id": "config-basic"
+          },
+          {
+            "type": "page",
+            "label": "Advanced config",
+            "id": "config-advanced"
+          }
         ]
-    }
+      }
+    ]
+  },
+  {
+    "type": "category",
+    "label": "Development",
+    "id": "development",
+    "children": [
+      {
+        "type": "page",
+        "label": "API Reference",
+        "id": "api"
+      },
+      {
+        "type": "category",
+        "label": "Plugins",
+        "id": "plugins",
+        "children": [
+          {
+            "type": "page",
+            "label": "Plugin lifecycle",
+            "id": "plugin-lifecycle"
+          },
+          {
+            "type": "category",
+            "label": "Examples",
+            "id": "examples",
+            "children": [
+              {
+                "type": "page",
+                "label": "Minimal plugin",
+                "id": "example-minimal"
+              },
+              {
+                "type": "page",
+                "label": "Full project",
+                "id": "example-full"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "category",
+    "label": "Guides",
+    "id": "guides",
+    "children": [
+      {
+        "type": "page",
+        "label": "Best practices",
+        "id": "best-practices"
+      },
+      {
+        "type": "category",
+        "label": "Integrations",
+        "id": "integrations",
+        "children": [
+          {
+            "type": "page",
+            "label": "GitHub integration",
+            "id": "integration-github"
+          },
+          {
+            "type": "page",
+            "label": "Discord integration",
+            "id": "integration-discord"
+          }
+        ]
+      }
+    ]
+  }
 ]

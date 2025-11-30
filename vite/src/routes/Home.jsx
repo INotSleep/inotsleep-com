@@ -27,7 +27,6 @@ function Home() {
                 gap: 3
             }}
         >
-            {/* HERO: кто я */}
             <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
                 <Typography variant="h4" sx={{ fontWeight: 700 }}>
                     {t("hero.title")}
