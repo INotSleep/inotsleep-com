@@ -180,7 +180,7 @@ function init(app) {
         }
 
         return res.status(200).send({
-            provided: fs.existsSync(path.join(process.cwd(), 'data', 'projects', projectId, lang, 'wiki'))
+            provided: fs.existsSync(path.join(process.cwd(), 'data', 'projects', projectId, lang, 'wiki', 'pages.json'))
         })
     })
 
@@ -200,7 +200,7 @@ function init(app) {
             lang = 'en';
         }
 
-        if (!fs.existsSync(path.join(process.cwd(), 'data', 'projects', projectId, lang, 'wiki'))) {
+        if (!fs.existsSync(path.join(process.cwd(), 'data', 'projects', projectId, lang, 'wiki', 'pages.json'))) {
             return res.status(404).send({ error: "Wiki not found" });
         }
 

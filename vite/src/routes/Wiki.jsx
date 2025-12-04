@@ -81,7 +81,6 @@ export default function Wiki() {
     const errorMessage =
         anyError?.response?.data?.error || anyError?.message || null;
 
-    // ---- контент (одинаковый и для десктопа, и для мобилки) ----
     const contentNode = (
         <>
             {errorMessage && (
@@ -111,7 +110,6 @@ export default function Wiki() {
         </>
     );
 
-    // ---- навигация (разная обёртка для мобилки/десктопа) ----
     const sidebarDesktop = isIndexPending ? (
         <Box
             sx={{
@@ -183,10 +181,7 @@ export default function Wiki() {
         </Box>
     );
 
-    // ---- разный layout ----
-
     if (isMobile) {
-        // Мобила: Paper с контентом, ниже Paper с навигацией
         return (
             <>
                 <Paper
@@ -217,9 +212,7 @@ export default function Wiki() {
                 </Paper>
             </>
         );
-    }
-
-    // Десктоп: твой исходный layout, вообще не трогаем
+    }   
     return (
         <Paper
             elevation={2}

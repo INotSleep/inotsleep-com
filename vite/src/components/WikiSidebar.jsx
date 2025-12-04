@@ -90,7 +90,7 @@ export default function WikiSidebar({ projectId, tree, currentSegments, lang, fu
                                     <Typography
                                         variant="body2"
                                         fontWeight={500}
-                                        paddingLeft={1.5}
+                                        paddingLeft={1}
                                     >
                                         {node.label}
                                     </Typography>
@@ -107,11 +107,10 @@ export default function WikiSidebar({ projectId, tree, currentSegments, lang, fu
                             <Box
                                 sx={(theme) => ({
                                     position: "relative",
-                                    // тонкая вертикальная полоска, без влияния на layout
                                     "&::before": {
                                         content: '""',
                                         position: "absolute",
-                                        left: 8,              // можно подрегулировать под твой вкус
+                                        left: 8, 
                                         top: 4,
                                         bottom: 4,
                                         borderLeft: "1px solid",
