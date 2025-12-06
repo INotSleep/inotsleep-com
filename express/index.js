@@ -1,6 +1,6 @@
 import express from 'express';
 import fs from 'fs/promises';
-import { db } from './database.js'
+import { db } from './modules/database.js'
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -8,6 +8,9 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 async function start() {
+    app.use(express.json())
+
+
     let modules = [];
 
     let files = await fs.readdir('./modules')

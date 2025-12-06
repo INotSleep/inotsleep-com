@@ -11,6 +11,7 @@ import {
 } from "@mui/material";
 import LogoutIcon from "@mui/icons-material/Logout";
 import GitHubIcon from "@mui/icons-material/GitHub";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import axios from "axios";
 import { useTranslation } from "react-i18next";
 
@@ -19,6 +20,7 @@ export default function UserIcon() {
 
     const [user, setUser] = useState(null);
     const [anchorEl, setAnchorEl] = useState(null);
+    const [copyHint, setCopyHint] = useState(null);
 
     const menuOpen = Boolean(anchorEl);
 
@@ -65,6 +67,7 @@ export default function UserIcon() {
 
     const handleMenuClose = () => {
         setAnchorEl(null);
+        setCopyHint(null);
     };
 
     const handleLogout = async () => {
@@ -92,8 +95,34 @@ export default function UserIcon() {
     }
 
     const login = user.github_login || user.login || "user";
+    const userId = user.id;
     const avatarUrl = user.github_avatar_url || user.avatar_url || null;
     const avatarLetter = login.charAt(0).toUpperCase();
+
+    const handleCopyId = async () => {
+        if (!userId) return;
+
+        try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(userId);
+            } else {
+                const textarea = document.createElement("textarea");
+                textarea.value = userId;
+                textarea.style.position = "fixed";
+                textarea.style.left = "-9999px";
+                document.body.appendChild(textarea);
+                textarea.select();
+                try {
+                    document.execCommand("copy");
+                } finally {
+                    document.body.removeChild(textarea);
+                }
+            }
+            setCopyHint("Copied!");
+        } catch {
+            setCopyHint("Failed to copy");
+        }
+    };
 
     return (
         <>
@@ -126,14 +155,15 @@ export default function UserIcon() {
                     horizontal: "right"
                 }}
             >
-                <MenuItem disabled>
+                <MenuItem onClick={handleCopyId} disabled={!userId}>
+                    <ListItemIcon>
+                        <ContentCopyIcon fontSize="small" />
+                    </ListItemIcon>
                     <ListItemText
-                        sx={{
-                            color: "white"
-                        }}
-                        primary={login}
+                        primary={copyHint || "Copy ID"}
                     />
                 </MenuItem>
+
                 <MenuItem onClick={handleLogout}>
                     <ListItemIcon>
                         <LogoutIcon fontSize="small" />

@@ -6,13 +6,15 @@ import enHome from "./resources/en/home.json";
 import enNotFound from "./resources/en/notfound.json";
 import enHeader from "./resources/en/header.json";
 import enProjects from "./resources/en/projects.json";
+import enI18n from "./resources/en/i18n.json"
 
 const resources = {
     en: {
         home: enHome,
         notfound: enNotFound,
         header: enHeader,
-        projects: enProjects
+        projects: enProjects,
+        i18n: enI18n,
     }
 };
 
@@ -29,7 +31,8 @@ i18n
             "home",
             "notfound",
             "projects",
-            "header"
+            "header",
+            "i18n"
         ],
         defaultNS: "home",
         interpolation: {

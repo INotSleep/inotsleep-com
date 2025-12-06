@@ -1,11 +1,37 @@
 import express from 'express';
 import axios from 'axios';
-import { getUser } from '../database.js';
+import { getPermissions, getUser } from './database.js';
 import path from 'path';
 import fs from 'fs';
 
 const projectsRoot = path.join(process.cwd(), "data", "projects");
 const projectsJsonPath = path.join(process.cwd(), "data", "projects.json");
+
+function requireAuth(req, res) {
+    if (!req.session || !req.session.userId) {
+        res.status(401).send({ error: 'Not authenticated' });
+        return null;
+    }
+    const user = getUser(req.session.userId);
+    if (!user) {
+        res.status(401).send({ error: 'User not found' });
+        return null;
+    }
+    return user;
+}
+
+
+function requirePermission(req, res, permission) {
+    const user = requireAuth(req, res);
+    if (!user) return null;
+
+    const perms = getPermissions(user.id) || [];
+    if (!perms.includes(permission)) {
+        res.status(403).send({ error: 'Forbidden' });
+        return null;
+    }
+    return user;
+}
 
 /**
  * 
@@ -24,7 +50,7 @@ function init(app) {
 
         res.send({
             user: {
-                github_id: user.github_id,
+                id: user.id,
                 github_login: user.github_login,
                 avatar_url: user.github_avatar_url
             }
@@ -56,6 +82,15 @@ function init(app) {
 
         res.send(result);
     });
+
+    app.get("/api/permissions", async (req, res) => {
+        const user = requireAuth(req, res);
+        if (!user) return;
+
+        const perms = getPermissions(user.id) || [];
+        
+        res.status(200).send(perms)
+    })
 
     app.get("/api/projects/:projectId", async (req, res) => {
         const projectId = req.params.projectId;
@@ -248,4 +283,9 @@ function init(app) {
 export default {
     init,
     priority: 0
+}
+
+export {
+    requireAuth,
+    requirePermission
 }

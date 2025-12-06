@@ -1,6 +1,6 @@
 import session from 'express-session';
 import SQLiteStoreFactory from 'better-sqlite3-session-store';
-import { db } from '../database.js';
+import { db } from './database.js';
 
 /**
  * @param {import('express').Express} app

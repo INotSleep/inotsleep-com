@@ -83,7 +83,7 @@ export default function Projects() {
                         sx={{
                             border: "1px solid",
                             borderColor: "divider",
-                            borderRadius: 2,
+                            borderRadius: 1,
                             p: 2,
                         }}
                     >

@@ -1,7 +1,7 @@
 import axios from 'axios';
 import express from 'express';
 import crypto from 'crypto';
-import { getUserByGitHubId, createUser, modifyUser } from '../database.js';
+import { getUserByGitHubId, createUser, modifyUser } from './database.js';
 
 const baseURL = process.env.BASE_URL || "https://inotsleep.com";
 
