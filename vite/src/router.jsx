@@ -8,7 +8,7 @@ import Wiki from './routes/Wiki.jsx';
 import I18nProjects from './routes/I18nProjects.jsx';
 import ManageI18nProject from './routes/ManageI18nProject.jsx';
 import I18nContributeProject from './routes/I18nContributeProject.jsx';
-import I18nModeration from './routes/I18NModeration.jsx';
+import I18nModeration from './routes/I18nModeration.jsx';
 
 export const router = createBrowserRouter(
     [
