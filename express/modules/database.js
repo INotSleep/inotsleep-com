@@ -8,9 +8,9 @@ function init() {
 
     prepareDB();
 
-    // addPermission("02a45e05-f173-4b04-9192-ab6141855fe6", "i18n.manage")
-    // addPermission("02a45e05-f173-4b04-9192-ab6141855fe6", "i18n.upload")
-    // addPermission("02a45e05-f173-4b04-9192-ab6141855fe6", "i18n.moderate")
+    // addPermission("68a55f6a-c153-40f2-a9fa-ee8ea44d41ed", "i18n.manage")
+    // addPermission("68a55f6a-c153-40f2-a9fa-ee8ea44d41ed", "i18n.upload")
+    // addPermission("68a55f6a-c153-40f2-a9fa-ee8ea44d41ed", "i18n.moderate")
 }
 
 function prepareDB() {
