@@ -14,12 +14,6 @@
                     "url": "https://nexus.inotsleep.com/#browse/browse:maven-public:com%2Finotsleep%2Futils"
                 }
             ]
-        },
-        {
-            "id": "test",
-            "name": "Test",
-            "description": "Just a test project for testing porpuses",
-            "buttons": []
         }
     ]
 }
