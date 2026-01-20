@@ -168,12 +168,14 @@ export default function I18nModeration() {
                         pl: 2,
                         m: 0,
                         "& li": {
-                            fontSize: "0.9rem"
+                            fontSize: "0.9rem",     
+                            whiteSpace: "pre-wrap",
+                            wordBreak: "break-word"
                         }
                     }}
                 >
                     {parsed.map((line, idx) => (
-                        <li key={idx}>{String(line)}</li>
+                        <li key={idx}>{line}</li>
                     ))}
                 </Box>
             );

@@ -26,10 +26,8 @@ export default function I18nProject() {
     const location = useLocation();
     const queryClient = useQueryClient();
 
-    const { t, i18n } = useTranslation("i18n");
+    const { t } = useTranslation("i18n");
 
-    // -------------------- язык в хабе --------------------
-    // 1. тащим языки с бэка
     const { data: langsData } = useQuery({
         queryKey: ["i18n-languages"],
         queryFn: async () => {
@@ -38,18 +36,15 @@ export default function I18nProject() {
         }
     });
 
-    // нормализуем список
     const supportedLangs = useMemo(() => {
         return langsData && langsData.length > 0 ? langsData : ["en"];
     }, [langsData]);
 
-    // 2. local state: сначала просто из URL или "en"
     const [selectedLang, setSelectedLang] = useState(() => {
         const params = new URLSearchParams(location.search);
         return params.get("lang") || "en";
     });
 
-    // 3. как только есть список языков — валидируем selectedLang + синкаем URL
     useEffect(() => {
         if (!supportedLangs || supportedLangs.length === 0) return;
 
@@ -58,13 +53,11 @@ export default function I18nProject() {
 
         let next = selectedLang;
 
-        // если выбранный язык не входит в список — берём первый доступный
         if (!supportedLangs.includes(next)) {
             next = supportedLangs[0];
             setSelectedLang(next);
         }
 
-        // если в URL другой язык — обновляем query
         if (urlLang !== next) {
             params.set("lang", next);
             navigate(
@@ -76,7 +69,6 @@ export default function I18nProject() {
             );
         }
     }, [selectedLang, supportedLangs, location.pathname, location.search, navigate]);
-
 
     // -------------------- права пользователя --------------------
     const {
@@ -93,7 +85,6 @@ export default function I18nProject() {
     const canManage = permissions?.includes("i18n.manage") ?? false;
     const canUpload = permissions?.includes("i18n.upload") ?? false;
 
-    // -------------------- данные проекта + ключи + переводы --------------------
     const {
         data,
         isPending,
@@ -109,9 +100,7 @@ export default function I18nProject() {
             const [keysRes, trRes] = await Promise.all([
                 axios.get(`/api/i18n/projects/${encodeURIComponent(slug)}/keys`),
                 axios.get(
-                    `/api/i18n/projects/${encodeURIComponent(
-                        slug
-                    )}/translations`,
+                    `/api/i18n/projects/${encodeURIComponent(slug)}/translations`,
                     { params: { lang: selectedLang } }
                 )
             ]);
@@ -124,9 +113,9 @@ export default function I18nProject() {
         }
     });
 
-    // -------------------- диалог: добавление ключей --------------------
+    // -------------------- add keys dialog --------------------
     const [addDialogOpen, setAddDialogOpen] = useState(false);
-    const [addRows, setAddRows] = useState([{ key: "", description: "" }]);
+    const [addRows, setAddRows] = useState([{ key: "", type: "string", description: "" }]);
     const [addError, setAddError] = useState("");
 
     const addKeysMutation = useMutation({
@@ -141,7 +130,7 @@ export default function I18nProject() {
                 queryKey: ["i18n-project", slug, selectedLang]
             });
             setAddDialogOpen(false);
-            setAddRows([{ key: "", description: "" }]);
+            setAddRows([{ key: "", type: "string", description: "" }]);
             setAddError("");
         },
         onError: (e) => {
@@ -157,7 +146,7 @@ export default function I18nProject() {
         setAddDialogOpen(true);
         setAddError("");
         if (!addRows || addRows.length === 0) {
-            setAddRows([{ key: "", description: "" }]);
+            setAddRows([{ key: "", type: "string", description: "" }]);
         }
     };
 
@@ -168,7 +157,7 @@ export default function I18nProject() {
     };
 
     const handleAddRow = () => {
-        setAddRows((prev) => [...prev, { key: "", description: "" }]);
+        setAddRows((prev) => [...prev, { key: "", type: "string", description: "" }]);
     };
 
     const handleRemoveRow = (index) => {
@@ -187,6 +176,7 @@ export default function I18nProject() {
         const prepared = addRows
             .map((row) => ({
                 key: (row.key || "").trim(),
+                type: (row.type || "string").toString().trim().toLowerCase(),
                 description: (row.description || "").trim() || null
             }))
             .filter((row) => row.key.length > 0);
@@ -199,11 +189,11 @@ export default function I18nProject() {
         addKeysMutation.mutate({ keys: prepared });
     };
 
-    // -------------------- диалог: импорт YAML --------------------
+    // -------------------- import yaml dialog --------------------
     const [importDialogOpen, setImportDialogOpen] = useState(false);
     const [importLang, setImportLang] = useState(selectedLang);
     const [importYaml, setImportYaml] = useState("");
-       const [importError, setImportError] = useState("");
+    const [importError, setImportError] = useState("");
 
     const importYamlMutation = useMutation({
         mutationFn: async () => {
@@ -251,26 +241,21 @@ export default function I18nProject() {
         importYamlMutation.mutate();
     };
 
-    // -------------------- диалог: редактирование перевода + описания ключа --------------------
+    // -------------------- edit dialog --------------------
     const [editDialogOpen, setEditDialogOpen] = useState(false);
     const [editKeyId, setEditKeyId] = useState(null);
     const [editKeyName, setEditKeyName] = useState("");
     const [editDescription, setEditDescription] = useState("");
 
-    const [editValueType, setEditValueType] = useState("string"); // "string" | "list"
+    const [editKeyType, setEditKeyType] = useState(null); // "string" | "list" | null
+    const [editValueType, setEditValueType] = useState("string");
+
     const [editStringValue, setEditStringValue] = useState("");
     const [editListItems, setEditListItems] = useState([""]);
     const [editError, setEditError] = useState("");
 
     const updateTranslationMutation = useMutation({
-        mutationFn: async ({
-            keyId,
-            key,
-            language,
-            value,
-            description
-        }) => {
-            // 1) обновляем перевод + описание
+        mutationFn: async ({ key, language, value, description }) => {
             await axios.post(
                 `/api/i18n/projects/${encodeURIComponent(slug)}/translations`,
                 { key, language, value, description }
@@ -292,13 +277,10 @@ export default function I18nProject() {
         }
     });
 
-    // ---- Мутация удаления ключа ----
     const deleteKeyMutation = useMutation({
         mutationFn: async (keyId) => {
             return axios.delete(
-                `/api/i18n/projects/${encodeURIComponent(
-                    slug
-                )}/keys/${keyId}`
+                `/api/i18n/projects/${encodeURIComponent(slug)}/keys/${keyId}`
             );
         },
         onSuccess: () => {
@@ -307,7 +289,6 @@ export default function I18nProject() {
             });
         },
         onError: (e) => {
-            // можно сделать нормальный UI, но пока минимум
             alert(
                 e?.response?.data?.error ||
                     e?.message ||
@@ -327,23 +308,65 @@ export default function I18nProject() {
         deleteKeyMutation.mutate(keyRow.id);
     };
 
-    const handleEditClick = (keyRow, translations) => {
+    const normalizeKeyType = (k, value) => {
+        const raw =
+            k?.value_type ??
+            k?.valueType ??
+            k?.type ??
+            null;
+
+        if (typeof raw === "string") {
+            const v = raw.toLowerCase();
+            if (v === "list" || v === "array") return "list";
+            if (v === "string") return "string";
+        }
+
+        // fallback: если бэк не отдаёт тип — пытаемся угадать по значению
+        if (Array.isArray(value)) return "list";
+        return "string";
+    };
+
+    const handleEditClick = (keyRow, translationsMap) => {
         const keyName = keyRow.key_name;
-        const current = translations[keyName];
+        const current = translationsMap[keyName];
+        const keyType = normalizeKeyType(keyRow, current);
 
         setEditKeyId(keyRow.id);
         setEditKeyName(keyName);
         setEditDescription(keyRow.description || "");
+        setEditKeyType(keyType);
 
-        if (Array.isArray(current)) {
+        // Если есть тип ключа — он главный. Если значения нет/не совпадает — конвертируем аккуратно.
+        if (keyType === "list") {
             setEditValueType("list");
-            const items = current.map((v) => (v != null ? String(v) : ""));
-            setEditListItems(items.length > 0 ? items : [""]);
-            setEditStringValue("");
+
+            if (Array.isArray(current)) {
+                const items = current.map((v) => (v != null ? String(v) : ""));
+                setEditListItems(items.length > 0 ? items : [""]);
+                setEditStringValue("");
+            } else if (typeof current === "string") {
+                // строка -> список (по строкам) как fallback
+                const items = current.length > 0 ? current.split(/\r?\n/) : [""];
+                setEditListItems(items.length > 0 ? items : [""]);
+                setEditStringValue("");
+            } else {
+                setEditListItems([""]);
+                setEditStringValue("");
+            }
         } else {
             setEditValueType("string");
-            setEditStringValue(current != null ? String(current) : "");
-            setEditListItems([""]);
+
+            if (typeof current === "string") {
+                setEditStringValue(current != null ? String(current) : "");
+                setEditListItems([""]);
+            } else if (Array.isArray(current)) {
+                // список -> строка (через \n) как fallback
+                setEditStringValue(current.map((v) => (v != null ? String(v) : "")).join("\n"));
+                setEditListItems([""]);
+            } else {
+                setEditStringValue("");
+                setEditListItems([""]);
+            }
         }
 
         setEditError("");
@@ -356,18 +379,17 @@ export default function I18nProject() {
         setEditError("");
     };
 
+    const isTypeLocked = Boolean(editKeyType); // если ключ всегда имеет тип, блокируем переключатель
     const handleEditValueTypeChange = (e) => {
+        if (isTypeLocked) return;
+
         const newType = e.target.value;
         if (newType === editValueType) return;
 
         if (newType === "list") {
-            // конвертация строки в список (только при явном выборе)
-            const items = editStringValue
-                ? editStringValue.split(/\r?\n/)
-                : [""];
+            const items = editStringValue ? editStringValue.split(/\r?\n/) : [""];
             setEditListItems(items);
         } else {
-            // конвертация списка в строку (только при явном выборе)
             const combined = editListItems.join("\n");
             setEditStringValue(combined);
         }
@@ -393,22 +415,23 @@ export default function I18nProject() {
         let value;
 
         if (editValueType === "string") {
-            // строка как есть, с любыми переносами
-            value = editStringValue;
+            value = editStringValue; // сохраняем как есть (включая переносы)
         } else {
+            // ВАЖНО: не trim-им сами значения (чтобы не убить переносы/формат),
+            // trim используем только чтобы отсечь полностью пустые элементы.
             const items = editListItems
-                .map((s) => s.trim())
-                .filter((s) => s.length > 0);
+                .map((s) => (s == null ? "" : String(s)))
+                .filter((s) => s.trim().length > 0);
 
             if (items.length === 0) {
                 setEditError(t("edit_list_empty"));
                 return;
             }
+
             value = items;
         }
 
         updateTranslationMutation.mutate({
-            keyId: editKeyId,
             key: editKeyName,
             language: selectedLang,
             value,
@@ -457,7 +480,7 @@ export default function I18nProject() {
 
     const { project, keys, translations } = data;
 
-    // -------------------- основной контент (весь в одном Paper) --------------------
+    // -------------------- основной контент --------------------
     return (
         <>
             <Paper
@@ -470,7 +493,6 @@ export default function I18nProject() {
                     gap: 2
                 }}
             >
-                {/* Шапка хаба */}
                 <Box
                     sx={{
                         display: "flex",
@@ -486,17 +508,13 @@ export default function I18nProject() {
                         </Typography>
                         <Stack direction="row" spacing={1} alignItems="center">
                             {isFetching && (
-                                <Typography
-                                    variant="caption"
-                                    sx={{ opacity: 0.7 }}
-                                >
+                                <Typography variant="caption" sx={{ opacity: 0.7 }}>
                                     {t("refreshing")}…
                                 </Typography>
                             )}
                         </Stack>
                     </Box>
 
-                    {/* Правый блок: выбор языка + действия */}
                     <Stack direction="row" spacing={2} alignItems="center">
                         <TextField
                             size="small"
@@ -514,20 +532,12 @@ export default function I18nProject() {
                         </TextField>
 
                         {canManage && (
-                            <Button
-                                size="small"
-                                variant="outlined"
-                                onClick={handleAddKeysClick}
-                            >
+                            <Button size="small" variant="outlined" onClick={handleAddKeysClick}>
                                 {t("add_keys")}
                             </Button>
                         )}
                         {canUpload && (
-                            <Button
-                                size="small"
-                                variant="contained"
-                                onClick={handleImportClick}
-                            >
+                            <Button size="small" variant="contained" onClick={handleImportClick}>
                                 {t("import_yaml")}
                             </Button>
                         )}
@@ -536,25 +546,16 @@ export default function I18nProject() {
 
                 <Divider />
 
-                {/* Список ключей и переводов для выбранного языка */}
-                <Box
-                    sx={{
-                        flex: 1,
-                        maxHeight: "70vh",
-                        overflow: "auto"
-                    }}
-                >
+                <Box sx={{ flex: 1, maxHeight: "70vh", overflow: "auto" }}>
                     {keys.length === 0 ? (
-                        <Typography
-                            variant="body2"
-                            sx={{ opacity: 0.8, mt: 1 }}
-                        >
+                        <Typography variant="body2" sx={{ opacity: 0.8, mt: 1 }}>
                             {t("no_keys_yet")}
                         </Typography>
                     ) : (
                         <Stack spacing={1.5}>
                             {keys.map((k) => {
                                 const value = translations[k.key_name];
+                                const keyType = normalizeKeyType(k, value);
                                 const isArray = Array.isArray(value);
 
                                 return (
@@ -574,58 +575,52 @@ export default function I18nProject() {
                                             alignItems="center"
                                             justifyContent="space-between"
                                         >
-                                            <Typography
-                                                variant="subtitle2"
-                                                sx={{
-                                                    fontFamily:
-                                                        "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace"
-                                                }}
-                                            >
-                                                {k.key_name}
-                                                {" "}
+                                            <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
+                                                <Typography
+                                                    variant="subtitle2"
+                                                    sx={{
+                                                        fontFamily:
+                                                            "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
+                                                        overflow: "hidden",
+                                                        textOverflow: "ellipsis",
+                                                        whiteSpace: "nowrap"
+                                                    }}
+                                                >
+                                                    {k.key_name}
+                                                </Typography>
+
                                                 <Chip
                                                     size="small"
-                                                    label={
-                                                        value === undefined
-                                                            ? t(
-                                                                  "status_untranslated"
-                                                              )
-                                                            : isArray
-                                                            ? t("type_list")
-                                                            : t("type_string")
-                                                    }
-                                                    color={
-                                                        value === undefined
-                                                            ? "warning"
-                                                            : "default"
-                                                    }
-                                                    variant={
-                                                        value === undefined
-                                                            ? "outlined"
-                                                            : "filled"
-                                                    }
+                                                    label={keyType === "list" ? t("type_list") : t("type_string")}
+                                                    variant="filled"
                                                 />
-                                            </Typography>
 
-                                            <Stack
-                                                direction="row"
-                                                spacing={0.75}
-                                                alignItems="center"
-                                            >
+                                                {value === undefined && (
+                                                    <Chip
+                                                        size="small"
+                                                        label={t("status_untranslated")}
+                                                        color="warning"
+                                                        variant="outlined"
+                                                    />
+                                                )}
+
+                                                {value !== undefined && (
+                                                    <Chip
+                                                        size="small"
+                                                        label={isArray ? t("type_list") : t("type_string")}
+                                                        sx={{ display: "none" }}
+                                                    />
+                                                )}
+                                            </Stack>
+
+                                            <Stack direction="row" spacing={0.75} alignItems="center">
                                                 {canManage && (
                                                     <>
                                                         <Button
                                                             size="small"
                                                             variant="outlined"
-                                                            sx={{
-                                                                p: 1
-                                                            }}
-                                                            onClick={() =>
-                                                                handleEditClick(
-                                                                    k,
-                                                                    translations
-                                                                )
-                                                            }
+                                                            sx={{ p: 1 }}
+                                                            onClick={() => handleEditClick(k, translations)}
                                                         >
                                                             {t("edit")}
                                                         </Button>
@@ -633,14 +628,8 @@ export default function I18nProject() {
                                                             size="small"
                                                             variant="outlined"
                                                             color="error"
-                                                            sx={{
-                                                                p: 1
-                                                            }}
-                                                            onClick={() =>
-                                                                handleDeleteClick(
-                                                                    k
-                                                                )
-                                                            }
+                                                            sx={{ p: 1 }}
+                                                            onClick={() => handleDeleteClick(k)}
                                                         >
                                                             {t("delete")}
                                                         </Button>
@@ -650,23 +639,15 @@ export default function I18nProject() {
                                         </Stack>
 
                                         {k.description && (
-                                            <Typography
-                                                variant="caption"
-                                                sx={{ mt: 0.5, opacity: 0.7 }}
-                                            >
+                                            <Typography variant="caption" sx={{ mt: 0.5, opacity: 0.7 }}>
                                                 {k.description}
                                             </Typography>
                                         )}
 
                                         <Box sx={{ mt: 1 }}>
                                             {value === undefined ? (
-                                                <Typography
-                                                    variant="body2"
-                                                    sx={{ opacity: 0.5 }}
-                                                >
-                                                    {t(
-                                                        "no_translation_for_lang"
-                                                    )}
+                                                <Typography variant="body2" sx={{ opacity: 0.5 }}>
+                                                    {t("no_translation_for_lang")}
                                                 </Typography>
                                             ) : Array.isArray(value) ? (
                                                 <Box
@@ -675,25 +656,18 @@ export default function I18nProject() {
                                                         pl: 2,
                                                         m: 0,
                                                         "& li": {
-                                                            fontSize: "0.9rem"
+                                                            fontSize: "0.9rem",
+                                                            whiteSpace: "pre-wrap",
+                                                            wordBreak: "break-word"
                                                         }
                                                     }}
                                                 >
-                                                    {value.map(
-                                                        (line, idx) => (
-                                                            <li key={idx}>
-                                                                {line}
-                                                            </li>
-                                                        )
-                                                    )}
+                                                    {value.map((line, idx) => (
+                                                        <li key={idx}>{line}</li>
+                                                    ))}
                                                 </Box>
                                             ) : (
-                                                <Typography
-                                                    variant="body2"
-                                                    sx={{
-                                                        whiteSpace: "pre-wrap"
-                                                    }}
-                                                >
+                                                <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
                                                     {value}
                                                 </Typography>
                                             )}
@@ -737,18 +711,10 @@ export default function I18nProject() {
                                     sx={{ mb: 1 }}
                                 >
                                     <Typography variant="subtitle2">
-                                        {t("key_block", {
-                                            index: index + 1
-                                        })}
+                                        {t("key_block", { index: index + 1 })}
                                     </Typography>
                                     {addRows.length > 1 && (
-                                        <Button
-                                            size="small"
-                                            color="error"
-                                            onClick={() =>
-                                                handleRemoveRow(index)
-                                            }
-                                        >
+                                        <Button size="small" color="error" onClick={() => handleRemoveRow(index)}>
                                             {t("remove")}
                                         </Button>
                                     )}
@@ -759,15 +725,21 @@ export default function I18nProject() {
                                         label={t("key_name")}
                                         fullWidth
                                         value={row.key}
-                                        onChange={(e) =>
-                                            handleChangeRow(
-                                                index,
-                                                "key",
-                                                e.target.value
-                                            )
-                                        }
+                                        onChange={(e) => handleChangeRow(index, "key", e.target.value)}
                                         placeholder="namespace.section.key"
                                     />
+
+                                    <TextField
+                                        select
+                                        label={t("value_type")}
+                                        fullWidth
+                                        value={row.type || "string"}
+                                        onChange={(e) => handleChangeRow(index, "type", e.target.value)}
+                                    >
+                                        <MenuItem value="string">{t("value_type_string")}</MenuItem>
+                                        <MenuItem value="list">{t("value_type_list")}</MenuItem>
+                                    </TextField>
+
                                     <TextField
                                         label={t("description")}
                                         fullWidth
@@ -775,37 +747,21 @@ export default function I18nProject() {
                                         minRows={2}
                                         maxRows={2}
                                         value={row.description}
-                                        onChange={(e) =>
-                                            handleChangeRow(
-                                                index,
-                                                "description",
-                                                e.target.value
-                                            )
-                                        }
-                                        placeholder={t(
-                                            "description_placeholder"
-                                        )}
+                                        onChange={(e) => handleChangeRow(index, "description", e.target.value)}
+                                        placeholder={t("description_placeholder")}
                                     />
                                 </Stack>
                             </Box>
                         ))}
 
                         <Box>
-                            <Button
-                                size="small"
-                                variant="text"
-                                onClick={handleAddRow}
-                            >
+                            <Button size="small" variant="text" onClick={handleAddRow}>
                                 {t("add_one_more_key")}
                             </Button>
                         </Box>
 
                         {addError && (
-                            <Typography
-                                variant="caption"
-                                color="error"
-                                sx={{ mt: 1, display: "block" }}
-                            >
+                            <Typography variant="caption" color="error" sx={{ mt: 1, display: "block" }}>
                                 {addError}
                             </Typography>
                         )}
@@ -813,10 +769,7 @@ export default function I18nProject() {
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={handleAddKeysClose}>{t("cancel")}</Button>
-                    <Button
-                        onClick={handleAddKeysSubmit}
-                        disabled={addKeysMutation.isPending}
-                    >
+                    <Button onClick={handleAddKeysSubmit} disabled={addKeysMutation.isPending}>
                         {t("save")}
                     </Button>
                 </DialogActions>
@@ -858,21 +811,14 @@ export default function I18nProject() {
                     />
 
                     {importError && (
-                        <Typography
-                            variant="caption"
-                            color="error"
-                            sx={{ mt: 1, display: "block" }}
-                        >
+                        <Typography variant="caption" color="error" sx={{ mt: 1, display: "block" }}>
                             {importError}
                         </Typography>
                     )}
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={handleImportClose}>{t("cancel")}</Button>
-                    <Button
-                        onClick={handleImportSubmit}
-                        disabled={importYamlMutation.isPending}
-                    >
+                    <Button onClick={handleImportSubmit} disabled={importYamlMutation.isPending}>
                         {t("import")}
                     </Button>
                 </DialogActions>
@@ -894,7 +840,6 @@ export default function I18nProject() {
                         })}
                     </Typography>
 
-                    {/* Key path (readonly) */}
                     <TextField
                         label={t("key_name")}
                         fullWidth
@@ -903,7 +848,6 @@ export default function I18nProject() {
                         sx={{ mb: 2 }}
                     />
 
-                    {/* Описание ключа */}
                     <TextField
                         label={t("description")}
                         fullWidth
@@ -916,7 +860,6 @@ export default function I18nProject() {
                         sx={{ mb: 2 }}
                     />
 
-                    {/* Тип значения: строка / список */}
                     <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
                         <TextField
                             select
@@ -925,17 +868,14 @@ export default function I18nProject() {
                             value={editValueType}
                             onChange={handleEditValueTypeChange}
                             sx={{ minWidth: 160 }}
+                            disabled={isTypeLocked}
+                            helperText={isTypeLocked ? t("value_type_locked_hint") : ""}
                         >
-                            <MenuItem value="string">
-                                {t("value_type_string")}
-                            </MenuItem>
-                            <MenuItem value="list">
-                                {t("value_type_list")}
-                            </MenuItem>
+                            <MenuItem value="string">{t("value_type_string")}</MenuItem>
+                            <MenuItem value="list">{t("value_type_list")}</MenuItem>
                         </TextField>
                     </Stack>
 
-                    {/* Значение */}
                     {editValueType === "string" ? (
                         <TextField
                             label={t("translation_value")}
@@ -943,40 +883,29 @@ export default function I18nProject() {
                             minRows={4}
                             fullWidth
                             value={editStringValue}
-                            onChange={(e) =>
-                                setEditStringValue(e.target.value)
-                            }
+                            onChange={(e) => setEditStringValue(e.target.value)}
                             placeholder={t("edit_translation_placeholder")}
                         />
                     ) : (
                         <Stack spacing={1.5}>
                             {editListItems.map((item, index) => (
-                                <Stack
-                                    key={index}
-                                    direction="row"
-                                    spacing={1}
-                                    alignItems="center"
-                                >
+                                <Stack key={index} direction="row" spacing={1} alignItems="flex-start">
                                     <TextField
-                                        label={t("list_item_label", {
-                                            index: index + 1
-                                        })}
+                                        label={t("list_item_label", { index: index + 1 })}
                                         fullWidth
+                                        multiline
+                                        minRows={2}
+                                        maxRows={8}
                                         value={item}
-                                        onChange={(e) =>
-                                            handleChangeListItem(
-                                                index,
-                                                e.target.value
-                                            )
-                                        }
+                                        onChange={(e) => handleChangeListItem(index, e.target.value)}
+                                        placeholder={t("edit_translation_placeholder")}
                                     />
                                     {editListItems.length > 1 && (
                                         <Button
                                             size="small"
                                             color="error"
-                                            onClick={() =>
-                                                handleRemoveListItem(index)
-                                            }
+                                            onClick={() => handleRemoveListItem(index)}
+                                            sx={{ mt: 1 }}
                                         >
                                             {t("remove")}
                                         </Button>
@@ -984,40 +913,26 @@ export default function I18nProject() {
                                 </Stack>
                             ))}
                             <Box>
-                                <Button
-                                    size="small"
-                                    variant="text"
-                                    onClick={handleAddListItem}
-                                >
+                                <Button size="small" variant="text" onClick={handleAddListItem}>
                                     {t("add_list_item")}
                                 </Button>
                             </Box>
                         </Stack>
                     )}
 
-                    <Typography
-                        variant="caption"
-                        sx={{ mt: 1, display: "block", opacity: 0.8 }}
-                    >
+                    <Typography variant="caption" sx={{ mt: 1, display: "block", opacity: 0.8 }}>
                         {t("edit_translation_hint")}
                     </Typography>
 
                     {editError && (
-                        <Typography
-                            variant="caption"
-                            color="error"
-                            sx={{ mt: 1, display: "block" }}
-                        >
+                        <Typography variant="caption" color="error" sx={{ mt: 1, display: "block" }}>
                             {editError}
                         </Typography>
                     )}
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={handleEditClose}>{t("cancel")}</Button>
-                    <Button
-                        onClick={handleEditSubmit}
-                        disabled={updateTranslationMutation.isPending}
-                    >
+                    <Button onClick={handleEditSubmit} disabled={updateTranslationMutation.isPending}>
                         {t("save")}
                     </Button>
                 </DialogActions>

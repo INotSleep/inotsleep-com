@@ -7,11 +7,24 @@ function init() {
     db.pragma('journal_mode = WAL');
 
     prepareDB();
-
-    // addPermission("68a55f6a-c153-40f2-a9fa-ee8ea44d41ed", "i18n.manage")
-    // addPermission("68a55f6a-c153-40f2-a9fa-ee8ea44d41ed", "i18n.upload")
-    // addPermission("68a55f6a-c153-40f2-a9fa-ee8ea44d41ed", "i18n.moderate")
 }
+
+function ensureI18nKeyTypeColumn() {
+    const cols = db.prepare(`PRAGMA table_info(i18n_keys);`).all().map((c) => c.name);
+    if (!cols.includes("value_type")) {
+        db.prepare(
+            `ALTER TABLE i18n_keys
+             ADD COLUMN value_type TEXT NOT NULL DEFAULT 'string';`
+        ).run();
+    }
+
+    db.prepare(
+        `UPDATE i18n_keys
+         SET value_type = 'string'
+         WHERE value_type IS NULL OR TRIM(value_type) = '';`
+    ).run();
+}
+
 
 function prepareDB() {
     db.prepare(
@@ -46,10 +59,12 @@ function prepareDB() {
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             project_id BIGINT NOT NULL REFERENCES i18n_supported_projects(id),
             key_name TEXT NOT NULL,
+            value_type TEXT NOT NULL DEFAULT 'string',
             description TEXT,
             UNIQUE (project_id, key_name)
         );`
-    ).run()
+    ).run();    
+
     
     db.prepare(
         `CREATE TABLE IF NOT EXISTS i18n_languages (
@@ -97,7 +112,21 @@ function prepareDB() {
         CREATE INDEX IF NOT EXISTS idx_i18n_suggestions_status
             ON i18n_suggestions(status);
     `).run();
+
+    ensureI18nKeyTypeColumn();
 }
+
+function normalizeKeyType(type) {
+    if (typeof type !== "string") return "string";
+    const v = type.trim().toLowerCase();
+    if (v === "list" || v === "array") return "list";
+    return "string";
+}
+
+function inferKeyTypeFromValue(value) {
+    return Array.isArray(value) ? "list" : "string";
+}
+
 
 const SUGGESTION_STATUS = {
     PENDING: 0,
@@ -154,18 +183,36 @@ function removePermission(userId, permission) {
     ).run(userId, permission);
 }
 
-function getOrCreateI18nKey(projectId, keyName, description = null) {
+function getOrCreateI18nKey(projectId, keyName, valueType = "string", description = null) {
+    const normalizedType = normalizeKeyType(valueType);
+
     const existing = getI18nKeyByProjectAndName(projectId, keyName);
-    if (existing) return existing;
+    if (existing) {
+        // если ключ старый и у него пустой тип — проставим
+        const currentType = existing.value_type ? normalizeKeyType(existing.value_type) : null;
+        if (!currentType) {
+            db.prepare(
+                `UPDATE i18n_keys
+                 SET value_type = ?
+                 WHERE id = ?;`
+            ).run(normalizedType, existing.id);
+
+            return getI18nKey(existing.id);
+        }
+
+        return existing;
+    }
 
     const info = db.prepare(
-        'INSERT INTO i18n_keys (project_id, key_name, description) VALUES (?, ?, ?);'
-    ).run(projectId, keyName, description);
+        `INSERT INTO i18n_keys (project_id, key_name, value_type, description)
+         VALUES (?, ?, ?, ?);`
+    ).run(projectId, keyName, normalizedType, description);
 
     return db.prepare(
-        'SELECT * FROM i18n_keys WHERE id = ?;'
+        `SELECT * FROM i18n_keys WHERE id = ?;`
     ).get(info.lastInsertRowid);
 }
+
 
 function getI18nKey(id) {
     return db.prepare(
@@ -249,9 +296,25 @@ function bulkImportI18nTranslations(projectId, language, flatTranslations, autho
         for (let [keyName, value] of Object.entries(flatTranslations)) {
             if (value == null) continue;
 
-            value = JSON.stringify(value)
+            const inferredType = inferKeyTypeFromValue(value);
+            value = JSON.stringify(value);
 
-            const keyRow = getOrCreateI18nKey(projectId, keyName, null);
+            const keyRow = getOrCreateI18nKey(projectId, keyName, inferredType, null);
+
+            const keyType = normalizeKeyType(keyRow.value_type ?? "string");
+            if (keyType === "string") {
+                const parsed = JSON.parse(value);
+                if (Array.isArray(parsed)) {
+                    throw new Error(`KEY_TYPE_MISMATCH:${keyName}:expected string, got list`);
+                }
+            }
+            if (keyType === "list") {
+                const parsed = JSON.parse(value);
+                if (!Array.isArray(parsed)) {
+                    throw new Error(`KEY_TYPE_MISMATCH:${keyName}:expected list, got string`);
+                }
+            }
+
             const existing = selectExistingStmt.get(keyRow.id, language);
 
             if (existing) {
@@ -470,7 +533,7 @@ function getI18nKeyByProjectAndName(projectId, keyName) {
 
 function getI18nKeysForProject(projectId) {
     return db.prepare(
-        'SELECT id, key_name, description FROM i18n_keys WHERE project_id = ? ORDER BY key_name ASC;'
+        'SELECT * FROM i18n_keys WHERE project_id = ? ORDER BY key_name ASC;'
     ).all(projectId);
 }
 
@@ -481,20 +544,28 @@ function deleteI18nKey(id) {
 }
 
 /**
- * keys: [{ keyName, description }]
+ * keys: [{ keyName, valueType, description }]
  */
 function createI18nKeysBulk(projectId, keys) {
     const selectStmt = db.prepare(
-        'SELECT * FROM i18n_keys WHERE project_id = ? AND key_name = ?;'
+        `SELECT * FROM i18n_keys WHERE project_id = ? AND key_name = ?;`
     );
+
     const insertStmt = db.prepare(
-        'INSERT INTO i18n_keys (project_id, key_name, description) VALUES (?, ?, ?);'
+        `INSERT INTO i18n_keys (project_id, key_name, value_type, description)
+         VALUES (?, ?, ?, ?);`
     );
+
     const updateDescStmt = db.prepare(
-        'UPDATE i18n_keys SET description = ? WHERE id = ?;'
+        `UPDATE i18n_keys SET description = ? WHERE id = ?;`
     );
+
+    const updateTypeStmt = db.prepare(
+        `UPDATE i18n_keys SET value_type = ? WHERE id = ?;`
+    );
+
     const selectByIdStmt = db.prepare(
-        'SELECT id, key_name, description FROM i18n_keys WHERE id = ?;'
+        `SELECT id, key_name, value_type, description FROM i18n_keys WHERE id = ?;`
     );
 
     const results = [];
@@ -504,21 +575,29 @@ function createI18nKeysBulk(projectId, keys) {
             const keyName = item.keyName;
             const description = item.description ?? null;
 
+            const valueType = normalizeKeyType(item.valueType ?? item.value_type ?? item.type ?? "string");
+
             let existing = selectStmt.get(projectId, keyName);
             if (existing) {
-                if (
-                    description !== null &&
-                    description !== undefined &&
-                    description !== existing.description
-                ) {
+                let changed = false;
+
+                // обновим описание при необходимости
+                if (description !== null && description !== undefined && description !== existing.description) {
                     updateDescStmt.run(description, existing.id);
-                    existing = selectByIdStmt.get(existing.id);
+                    changed = true;
                 }
-                results.push(existing);
+
+                // обновим тип если он отличается (я делаю это разрешённым)
+                const currentType = normalizeKeyType(existing.value_type ?? "string");
+                if (valueType && currentType !== valueType) {
+                    updateTypeStmt.run(valueType, existing.id);
+                    changed = true;
+                }
+
+                results.push(changed ? selectByIdStmt.get(existing.id) : existing);
             } else {
-                const info = insertStmt.run(projectId, keyName, description);
-                const row = selectByIdStmt.get(info.lastInsertRowid);
-                results.push(row);
+                const info = insertStmt.run(projectId, keyName, valueType, description);
+                results.push(selectByIdStmt.get(info.lastInsertRowid));
             }
         }
     });

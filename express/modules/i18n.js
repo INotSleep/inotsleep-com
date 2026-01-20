@@ -45,6 +45,15 @@ function flattenObject(obj, prefix = '') {
     return result;
 }
 
+function normalizeKeyType(type) {
+    if (typeof type !== 'string') return 'string';
+    const v = type.trim().toLowerCase();
+    if (v === 'list' || v === 'array') return 'list';
+    if (v === 'string') return 'string';
+    return null;
+}
+
+
 function isValidTranslationValue(value) {
     if (typeof value === 'string') {
         return value.trim().length > 0;
@@ -158,21 +167,27 @@ function init(app) {
         const normalizedKeys = [];
         for (const item of keys) {
             if (!item || typeof item !== 'object') continue;
+
             const keyName = item.key ?? item.key_name;
             const description = item.description ?? null;
 
+            const typeRaw = item.type ?? item.value_type ?? item.valueType ?? 'string';
+            const valueType = normalizeKeyType(typeRaw);
+            if (!valueType) {
+                return res.status(400).send({ error: `Invalid key type for ${keyName}` });
+            }
+
             if (!isValidKeyName(keyName)) {
-                return res
-                    .status(400)
-                    .send({ error: `Invalid key: ${keyName}` });
+                return res.status(400).send({ error: `Invalid key: ${keyName}` });
             }
 
             normalizedKeys.push({
                 keyName: keyName,
-                description:
-                    typeof description === 'string' ? description : null
+                valueType: valueType,
+                description: typeof description === 'string' ? description : null
             });
         }
+
 
         if (normalizedKeys.length === 0) {
             return res
@@ -267,9 +282,16 @@ function init(app) {
 
             const flat = flattenObject(parsed);
 
-            bulkImportI18nTranslations(project.id, language, flat, user.id);
+            try {
+                bulkImportI18nTranslations(project.id, language, flat, user.id);
+                res.send({ success: true });
+            } catch (err) {
+                if (String(err?.message || "").startsWith("KEY_TYPE_MISMATCH:")) {
+                    return res.status(400).send({ error: err.message });
+                }
+                throw err;
+            }
 
-            res.send({ success: true });
         } catch (err) {
             console.error('Error importing i18n YAML', err);
             res.status(500).send({ error: 'Internal server error' });
@@ -450,9 +472,15 @@ function init(app) {
 
             const keyRow = getI18nKeyByProjectAndName(project.id, key);
             if (!keyRow) {
-                return res
-                    .status(404)
-                    .send({ error: 'Key not found in this project' });
+                return res.status(404).send({ error: 'Key not found in this project' });
+            }
+
+            const keyType = (keyRow.value_type || 'string').toString().toLowerCase();
+            if (keyType === 'string' && typeof value !== 'string') {
+                return res.status(400).send({ error: 'This key expects a string value' });
+            }
+            if (keyType === 'list' && !Array.isArray(value)) {
+                return res.status(400).send({ error: 'This key expects a list value' });
             }
 
             upsertI18nTranslation(keyRow.id, language, value, user.id);

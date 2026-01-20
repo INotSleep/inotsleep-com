@@ -55,6 +55,15 @@ export default function I18nContributeProject() {
         return fromApi.length > 0 ? fromApi : ["en"];
     }, [langsData]);
 
+    const normalizeKeyType = (type) => {
+        if (typeof type !== "string") return null;
+        const v = type.trim().toLowerCase();
+        if (v === "list" || v === "array") return "list";
+        if (v === "string") return "string";
+        return null;
+    };
+
+
     // если выбранный язык выпал из списка — аккуратно чиним
     useEffect(() => {
         if (languageCodes.length === 0) return;
@@ -236,7 +245,6 @@ export default function I18nContributeProject() {
                 : [];
             const items = rawItems
                 .map((s) => (s ?? "").trim())
-                .filter((s) => s.length > 0);
 
             if (items.length === 0) {
                 setSubmitError(t("edit_list_empty"));
@@ -435,7 +443,14 @@ export default function I18nContributeProject() {
 
                             const srcIsArray = Array.isArray(srcValue);
                             const trgIsArray = Array.isArray(trgValue);
-                            const isListType = srcIsArray || trgIsArray;
+
+                            const keyType =
+                                normalizeKeyType(k.value_type) ??
+                                (trgIsArray ? "list" : typeof trgValue === "string" ? "string" : null) ??
+                                (srcIsArray ? "list" : typeof srcValue === "string" ? "string" : "string");
+
+                            const isListType = keyType === "list";
+
 
                             const effectiveStringDraft =
                                 stringDrafts[k.key_name] ??
@@ -443,21 +458,16 @@ export default function I18nContributeProject() {
                                     ? String(trgValue)
                                     : "");
 
+                            const draft = listDrafts[k.key_name];
                             const baseList =
-                                Array.isArray(listDrafts[k.key_name]) &&
-                                listDrafts[k.key_name].length > 0
-                                    ? listDrafts[k.key_name]
-                                    : Array.isArray(trgValue) &&
-                                      trgValue.length > 0
-                                    ? trgValue.map((v) =>
-                                          v != null ? String(v) : ""
-                                      )
-                                    : Array.isArray(srcValue) &&
-                                      srcValue.length > 0
-                                    ? srcValue.map((v) =>
-                                          v != null ? String(v) : ""
-                                      )
+                                Array.isArray(draft)
+                                    ? (draft.length > 0 ? draft : [""])
+                                    : Array.isArray(trgValue) && trgValue.length > 0
+                                    ? trgValue.map((v) => (v != null ? String(v) : ""))
+                                    : Array.isArray(srcValue) && srcValue.length > 0
+                                    ? srcValue.map((v) => (v != null ? String(v) : ""))
                                     : [""];
+
 
                             return (
                                 <Box
@@ -487,26 +497,21 @@ export default function I18nContributeProject() {
                                             {k.key_name}
                                         </Typography>
 
-                                        <Chip
-                                            size="small"
-                                            label={
-                                                trgValue === undefined
-                                                    ? t("status_untranslated")
-                                                    : isListType
-                                                    ? t("type_list")
-                                                    : t("type_string")
-                                            }
-                                            color={
-                                                trgValue === undefined
-                                                    ? "warning"
-                                                    : "default"
-                                            }
-                                            variant={
-                                                trgValue === undefined
-                                                    ? "outlined"
-                                                    : "filled"
-                                            }
-                                        />
+                                        <Stack direction="row" spacing={1} alignItems="center">
+                                            <Chip
+                                                size="small"
+                                                label={isListType ? t("type_list") : t("type_string")}
+                                                variant="filled"
+                                            />
+                                            {trgValue === undefined && (
+                                                <Chip
+                                                    size="small"
+                                                    label={t("status_untranslated")}
+                                                    color="warning"
+                                                    variant="outlined"
+                                                />
+                                            )}
+                                        </Stack>
                                     </Stack>
 
                                     {k.description && (
@@ -545,7 +550,9 @@ export default function I18nContributeProject() {
                                                         pl: 2,
                                                         m: 0,
                                                         "& li": {
-                                                            fontSize: "0.9rem"
+                                                            fontSize: "0.9rem",
+                                                            whiteSpace: "pre-wrap",
+                                                            wordBreak: "break-word"
                                                         }
                                                     }}
                                                 >
@@ -592,40 +599,32 @@ export default function I18nContributeProject() {
                                                         >
                                                             <TextField
                                                                 fullWidth
-                                                                label={t(
-                                                                    "list_item_label",
-                                                                    {
-                                                                        index:
-                                                                            index +
-                                                                            1
-                                                                    }
-                                                                )}
+                                                                multiline
+                                                                minRows={2}
+                                                                maxRows={8}
+                                                                label={t("list_item_label", { index: index + 1 })}
                                                                 value={item}
                                                                 onChange={(e) =>
                                                                     handleChangeListItem(
                                                                         k.key_name,
                                                                         index,
-                                                                        e.target
-                                                                            .value,
+                                                                        e.target.value,
                                                                         baseList
                                                                     )
                                                                 }
-                                                                onKeyDown={(
-                                                                    e
-                                                                ) => {
-                                                                    if (
-                                                                        e.key ===
-                                                                            "Enter" &&
-                                                                        !e.shiftKey
-                                                                    ) {
+                                                                onKeyDown={(e) => {
+                                                                    const isMac = navigator.platform?.toLowerCase().includes("mac");
+                                                                    const addNew =
+                                                                        (isMac && e.metaKey && e.key === "Enter") ||
+                                                                        (!isMac && e.ctrlKey && e.key === "Enter");
+
+                                                                    if (addNew) {
                                                                         e.preventDefault();
-                                                                        handleAddListItem(
-                                                                            k.key_name,
-                                                                            baseList
-                                                                        );
+                                                                        handleAddListItem(k.key_name, baseList);
                                                                     }
                                                                 }}
                                                             />
+
                                                             {baseList.length >
                                                                 1 && (
                                                                 <Button
