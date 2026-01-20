@@ -29,6 +29,10 @@
     "description_placeholder": "Optional description for translators (about two lines).",
     "add_one_more_key": "Add one more key",
 
+    "add_keys_no_valid_lines": "Please add at least one valid key name.",
+
+    "delete_key_confirm": "Delete key \"{{key}}\"? This cannot be undone.",
+
     "import_yaml_title": "Import YAML",
     "import_yaml_language_label": "Target language",
     "import_yaml_placeholder": "some:\n  nested:\n    key: Value\n  list:\n    - Line 1\n    - Line 2",
@@ -59,13 +63,17 @@
     "value_type": "Value type",
     "value_type_string": "Single string",
     "value_type_list": "List of lines",
+    "value_type_locked_hint": "This key has a fixed value type and cannot be changed.",
     "translation_value": "Translation",
     "edit_translation_placeholder": "Enter translation text here.",
     "list_item_label": "Item {{index}}",
     "add_list_item": "Add list item",
     "edit_translation_hint": "Use either a single string or a list of items, depending on how this key is used in your project.",
     "edit_list_empty": "List cannot be empty.",
+
     "manage": "Manage",
+    "moderate": "Moderate",
+
     "contribute_title": "Help translate",
     "contribute_intro": "Here you can suggest translations for this project. Your suggestions will go through moderation before being applied.",
     "keys_stats": "Shown: {{shown}} / {{total}} keys, untranslated: {{untranslated}}",
@@ -83,6 +91,7 @@
     "your_suggestion": "Your suggestion",
     "suggestion_placeholder": "Write your translation here…",
     "submit_suggestion": "Send suggestion",
+
     "mod_title": "Translation moderation",
     "mod_intro": "Here you can review, approve or reject user translation suggestions for all projects.",
     "mod_loading": "Loading suggestions…",
