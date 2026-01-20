@@ -5,6 +5,8 @@ cd "$(dirname "$0")"
 git fetch origin main
 git reset --hard origin/main
 
+chmod 777 ./deploy.sh
+
 cd ./vite
 npm ci
 npm run build
