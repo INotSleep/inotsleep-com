@@ -222,7 +222,7 @@ function init(app) {
 
     app.get('/api/i18n/projects/:slug/translations', (req, res) => {
         const slug = req.params.slug;
-        const lang = (req.query.lang || 'en').toString();
+        const lang = (req.query.lang || 'en_us').toString();
 
         try {
             const project = getI18nProjectBySlug(slug);

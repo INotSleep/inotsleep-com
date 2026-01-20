@@ -24,18 +24,16 @@ export default function I18nContributeProject() {
     const location = useLocation();
     const { t } = useTranslation("i18n");
 
-    // ---------- initial langs из URL ----------
     const [selectedTargetLang, setSelectedTargetLang] = useState(() => {
         const params = new URLSearchParams(location.search);
-        return params.get("lang") || "en";
+        return params.get("lang") || "en_us";
     });
 
     const [selectedSourceLang, setSelectedSourceLang] = useState(() => {
         const params = new URLSearchParams(location.search);
-        return params.get("source") || "en";
+        return params.get("source") || "en_us";
     });
 
-    // ---------- список языков с сервера ----------
     const {
         data: langsData,
         isLoading: langsLoading
@@ -52,7 +50,7 @@ export default function I18nContributeProject() {
         const fromApi = arr
             .map((it) => (typeof it === "string" ? it : it.code))
             .filter(Boolean);
-        return fromApi.length > 0 ? fromApi : ["en"];
+        return fromApi.length > 0 ? fromApi : ["en_us"];
     }, [langsData]);
 
     const normalizeKeyType = (type) => {
