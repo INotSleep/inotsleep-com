@@ -64,7 +64,7 @@ repositories {
 }
 
 dependencies {
-    compileOnly("com.inotsleep:utils:VERSION")
+    compileOnly("com.inotsleep:insutils-api:VERSION")
 }
 ````
 
@@ -78,7 +78,7 @@ repositories {
 }
 
 dependencies {
-    compileOnly "com.inotsleep:utils:VERSION"
+    compileOnly "com.inotsleep:insutils-api:VERSION"
 }
 ```
 

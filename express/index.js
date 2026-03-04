@@ -44,8 +44,8 @@ async function start() {
         module.init(app);
     });
 
-    app.listen(PORT, () => {
-        console.log(`Listening on ::${PORT}`);
+    app.listen(PORT, "127.0.0.1", () => {
+        console.log(`Listening on 127.0.0.1:${PORT}`);
     });
 }
 

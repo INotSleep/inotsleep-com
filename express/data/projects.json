@@ -11,7 +11,11 @@
                 },
                 {
                     "label": "Maven",
-                    "url": "https://nexus.inotsleep.com/#browse/browse:maven-public:com%2Finotsleep%2Futils"
+                    "url": "https://nexus.inotsleep.com/#browse/browse:maven-public:com%2Finotsleep%2Finsutils-api"
+                },
+                {
+                    "label": "Plugin download",
+                    "url": "https://modrinth.com/plugin/insutils"
                 }
             ]
         }
