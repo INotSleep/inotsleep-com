@@ -1,4 +1,10 @@
 {
+    "generic_error": "Error",
+    "breadcrumb_hub": "/ i18n / Hub",
+    "hub_intro": "Manage localization projects, open contribution flows and moderate incoming translations from one place.",
+    "projects_count": "{{count}} projects",
+    "translation_progress": "Translation progress ({{lang}})",
+
     "loading_projects": "Loading projects…",
     "loading_error": "Failed to load:",
     "no_projects": "No projects yet.",
@@ -30,6 +36,8 @@
     "add_one_more_key": "Add one more key",
 
     "add_keys_no_valid_lines": "Please add at least one valid key name.",
+    "add_keys_failed": "Failed to add keys",
+    "key_name_placeholder": "namespace.section.key",
 
     "delete_key_confirm": "Delete key \"{{key}}\"? This cannot be undone.",
 
@@ -37,6 +45,7 @@
     "import_yaml_language_label": "Target language",
     "import_yaml_placeholder": "some:\n  nested:\n    key: Value\n  list:\n    - Line 1\n    - Line 2",
     "import_yaml_empty": "YAML content is empty.",
+    "import_yaml_failed": "Failed to import YAML",
 
     "cancel": "Cancel",
     "save": "Save",
@@ -70,13 +79,21 @@
     "add_list_item": "Add list item",
     "edit_translation_hint": "Use either a single string or a list of items, depending on how this key is used in your project.",
     "edit_list_empty": "List cannot be empty.",
+    "update_translation_failed": "Failed to update translation",
+    "delete_key_failed": "Failed to delete key",
 
     "manage": "Manage",
     "moderate": "Moderate",
+    "missing_slug": "Missing slug",
+    "unknown_error": "Unknown error",
+    "empty_response": "empty response",
 
     "contribute_title": "Help translate",
+    "breadcrumb_contribute": "/ i18n / {{slug}}",
     "contribute_intro": "Here you can suggest translations for this project. Your suggestions will go through moderation before being applied.",
     "keys_stats": "Shown: {{shown}} / {{total}} keys, untranslated: {{untranslated}}",
+    "progress_translated_label": "{{percent}}% translated",
+    "progress_keys_label": "{{translated}}/{{total}} keys",
     "source_language": "Source language",
     "target_language": "Target language",
     "filter_untranslated": "Untranslated only",
@@ -92,6 +109,8 @@
     "suggestion_placeholder": "Write your translation here…",
     "submit_suggestion": "Send suggestion",
 
+    "breadcrumb_manage": "/ i18n / manage / {{slug}}",
+    "breadcrumb_moderation": "/ i18n / Moderation",
     "mod_title": "Translation moderation",
     "mod_intro": "Here you can review, approve or reject user translation suggestions for all projects.",
     "mod_loading": "Loading suggestions…",

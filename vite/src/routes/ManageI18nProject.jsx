@@ -19,6 +19,7 @@ import {
     DialogContent,
     DialogActions
 } from "@mui/material";
+import { itemCardSx, monoLabelSx, pagePanelSx, sectionTitleSx, subtleTextSx } from "../theme/neoStyles.js";
 
 export default function I18nProject() {
     const { slug } = useParams();
@@ -95,7 +96,7 @@ export default function I18nProject() {
         queryKey: ["i18n-project", slug, selectedLang],
         enabled: Boolean(slug),
         queryFn: async () => {
-            if (!slug) throw new Error("Missing slug");
+            if (!slug) throw new Error(t("missing_slug"));
 
             const [keysRes, trRes] = await Promise.all([
                 axios.get(`/api/i18n/projects/${encodeURIComponent(slug)}/keys`),
@@ -137,7 +138,7 @@ export default function I18nProject() {
             setAddError(
                 e?.response?.data?.error ||
                     e?.message ||
-                    "Failed to add keys"
+                    t("add_keys_failed")
             );
         }
     });
@@ -216,7 +217,7 @@ export default function I18nProject() {
             setImportError(
                 e?.response?.data?.error ||
                     e?.message ||
-                    "Failed to import YAML"
+                    t("import_yaml_failed")
             );
         }
     });
@@ -243,7 +244,6 @@ export default function I18nProject() {
 
     // -------------------- edit dialog --------------------
     const [editDialogOpen, setEditDialogOpen] = useState(false);
-    const [editKeyId, setEditKeyId] = useState(null);
     const [editKeyName, setEditKeyName] = useState("");
     const [editDescription, setEditDescription] = useState("");
 
@@ -272,7 +272,7 @@ export default function I18nProject() {
             setEditError(
                 e?.response?.data?.error ||
                     e?.message ||
-                    "Failed to update translation"
+                    t("update_translation_failed")
             );
         }
     });
@@ -292,7 +292,7 @@ export default function I18nProject() {
             alert(
                 e?.response?.data?.error ||
                     e?.message ||
-                    "Failed to delete key"
+                    t("delete_key_failed")
             );
         }
     });
@@ -331,7 +331,6 @@ export default function I18nProject() {
         const current = translationsMap[keyName];
         const keyType = normalizeKeyType(keyRow, current);
 
-        setEditKeyId(keyRow.id);
         setEditKeyName(keyName);
         setEditDescription(keyRow.description || "");
         setEditKeyType(keyType);
@@ -442,10 +441,10 @@ export default function I18nProject() {
     // -------------------- loading / error --------------------
     if (isPending) {
         return (
-            <Box sx={{ p: 3, display: "flex", gap: 2, alignItems: "center" }}>
+            <Paper sx={{ ...pagePanelSx, display: "flex", flexDirection: "row", alignItems: "center" }}>
                 <CircularProgress size={20} />
                 <Typography>{t("loading_project")}</Typography>
-            </Box>
+            </Paper>
         );
     }
 
@@ -459,22 +458,22 @@ export default function I18nProject() {
         }
 
         return (
-            <Box sx={{ p: 3 }}>
+            <Paper sx={pagePanelSx}>
                 <Typography color="error">
                     {t("loading_error")}{" "}
                     {axiosError?.message || String(axiosError)}
                 </Typography>
-            </Box>
+            </Paper>
         );
     }
 
     if (!data) {
         return (
-            <Box sx={{ p: 3 }}>
+            <Paper sx={pagePanelSx}>
                 <Typography color="error">
-                    {t("loading_error")}: empty response
+                    {t("loading_error")}: {t("empty_response")}
                 </Typography>
-            </Box>
+            </Paper>
         );
     }
 
@@ -484,14 +483,7 @@ export default function I18nProject() {
     return (
         <>
             <Paper
-                sx={{
-                    p: 3,
-                    width: "100%",
-                    boxSizing: "border-box",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 2
-                }}
+                sx={pagePanelSx}
             >
                 <Box
                     sx={{
@@ -503,12 +495,15 @@ export default function I18nProject() {
                     }}
                 >
                     <Box>
-                        <Typography variant="h5" sx={{ mb: 0.5 }}>
+                        <Typography variant="caption" sx={{ ...monoLabelSx, color: "primary.main" }}>
+                            {t("breadcrumb_manage", { slug })}
+                        </Typography>
+                        <Typography variant="h2" sx={{ ...sectionTitleSx, mt: 0.8 }}>
                             {project.name}
                         </Typography>
                         <Stack direction="row" spacing={1} alignItems="center">
                             {isFetching && (
-                                <Typography variant="caption" sx={{ opacity: 0.7 }}>
+                                <Typography variant="caption" sx={{ ...subtleTextSx }}>
                                     {t("refreshing")}…
                                 </Typography>
                             )}
@@ -564,8 +559,7 @@ export default function I18nProject() {
                                         sx={{
                                             display: "flex",
                                             flexDirection: "column",
-                                            borderRadius: 1,
-                                            border: "1px solid rgba(255,255,255,0.12)",
+                                            ...itemCardSx,
                                             p: 1.5
                                         }}
                                     >
@@ -699,8 +693,7 @@ export default function I18nProject() {
                             <Box
                                 key={index}
                                 sx={{
-                                    borderRadius: 1,
-                                    border: "1px solid rgba(255,255,255,0.16)",
+                                    ...itemCardSx,
                                     p: 1.5
                                 }}
                             >
@@ -726,7 +719,7 @@ export default function I18nProject() {
                                         fullWidth
                                         value={row.key}
                                         onChange={(e) => handleChangeRow(index, "key", e.target.value)}
-                                        placeholder="namespace.section.key"
+                                        placeholder={t("key_name_placeholder")}
                                     />
 
                                     <TextField
@@ -880,7 +873,7 @@ export default function I18nProject() {
                         <TextField
                             label={t("translation_value")}
                             multiline
-                            minRows={4}
+                            minRows={1}
                             fullWidth
                             value={editStringValue}
                             onChange={(e) => setEditStringValue(e.target.value)}
@@ -894,7 +887,7 @@ export default function I18nProject() {
                                         label={t("list_item_label", { index: index + 1 })}
                                         fullWidth
                                         multiline
-                                        minRows={2}
+                                        minRows={1}
                                         maxRows={8}
                                         value={item}
                                         onChange={(e) => handleChangeListItem(index, e.target.value)}

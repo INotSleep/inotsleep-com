@@ -16,7 +16,8 @@ export default function Heading({ level, children, ...props }) {
             sx={{
                 position: "relative",
                 scrollMarginTop: 10,
-                mb: 1.5,
+                mt: level === 1 ? 0.5 : 2.2,
+                mb: 1.1,
                 "&:hover .anchor-link": {
                     opacity: 1,
                 },
@@ -68,7 +69,7 @@ export default function Heading({ level, children, ...props }) {
                 <Typography
                     variant={variant}
                     component="span"
-                    sx={{ m: 0 }}
+                    sx={{ m: 0, fontFamily: '"Space Grotesk", Inter, sans-serif' }}
                 >
                     {children}
                 </Typography>

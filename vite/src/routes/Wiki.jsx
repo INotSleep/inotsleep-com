@@ -9,11 +9,14 @@ import {
     CircularProgress,
     Alert,
     Paper,
+    Divider,
+    Chip,
     useMediaQuery,
     useTheme,
 } from "@mui/material";
 import WikiSidebar from "../components/WikiSidebar.jsx";
 import MarkdownView from "../components/MarkdownView.jsx";
+import { pagePanelSx, sectionTitleSx, subtleTextSx, monoLabelSx } from "../theme/neoStyles.js";
 
 
 
@@ -185,27 +188,22 @@ export default function Wiki() {
         return (
             <>
                 <Paper
-                    elevation={2}
-                    sx={{
-                        width: "100%",
-                        p: 3,
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 3,
-                    }}
+                    sx={pagePanelSx}
                 >
+                    <Typography variant="caption" sx={{ ...monoLabelSx, color: "primary.main" }}>
+                        / Wiki / {projectId}
+                    </Typography>
+                    <Typography variant="h2" sx={sectionTitleSx}>
+                        Documentation
+                    </Typography>
+                    <Divider />
                     {contentNode}
                 </Paper>
 
                 <Paper
-                    elevation={2}
                     sx={{
-                        width: "100%",
-                        p: 3,
+                        ...pagePanelSx,
                         mt: 2,
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 1.5,
                     }}
                 >
                     {sidebarMobileInner}
@@ -215,15 +213,31 @@ export default function Wiki() {
     }   
     return (
         <Paper
-            elevation={2}
-            sx={{
-                width: "100%",
-                p: 3,
-                display: "flex",
-                flexDirection: "column",
-                gap: 3,
-            }}
+            sx={pagePanelSx}
         >
+            <Box
+                sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 1,
+                    flexWrap: "wrap"
+                }}
+            >
+                <Box>
+                    <Typography variant="caption" sx={{ ...monoLabelSx, color: "primary.main" }}>
+                        / Wiki / {projectId}
+                    </Typography>
+                    <Typography variant="h2" sx={sectionTitleSx}>
+                        Documentation
+                    </Typography>
+                </Box>
+                <Chip size="small" label={lang} variant="outlined" />
+            </Box>
+            <Typography variant="body2" sx={subtleTextSx}>
+                Navigate project guides on the left and read content on the right.
+            </Typography>
+            <Divider />
             <Box
                 sx={{
                     display: "flex",
@@ -239,7 +253,7 @@ export default function Wiki() {
                     sx={{
                         flexGrow: 1,
                         minWidth: 0,
-                        pl: 2,
+                        pl: 2.5,
                         overflow: "auto",
                     }}
                 >

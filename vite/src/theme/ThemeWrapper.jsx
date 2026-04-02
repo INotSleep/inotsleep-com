@@ -35,7 +35,7 @@ export default function ThemeWrapper() {
 
 function getInitialMode() {
     if (typeof window === "undefined") {
-        return "light";
+        return "dark";
     }
 
     const stored = window.localStorage.getItem("color-mode");

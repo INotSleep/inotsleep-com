@@ -3,6 +3,11 @@
     "title": "Hi, I'm Vladyslav (INotSleep)",
     "subtitle": "I build Minecraft plugins, INSUtils and small tools around servers and infrastructure."
   },
+  "meta": {
+    "breadcrumb": "/ Home / INotSleep",
+    "quickStart": "Quick Start",
+    "explore": "Explore"
+  },
   "blocks": {
     "projects": {
       "label": "Projects",
@@ -19,6 +24,7 @@
     }
   },
   "links": {
-    "caption": "Useful links:"
+    "caption": "Useful links:",
+    "github": "GitHub"
   }
 }

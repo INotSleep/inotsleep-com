@@ -1,10 +1,15 @@
 {
+    "breadcrumb": "/ Registry / Projects",
     "title": "Projects",
+    "subtitle": "A curated ecosystem of plugins, utilities and web tools built for server reliability and developer ergonomics.",
+    "featured": "Featured",
+    "open_details": "Open details",
     "loading_projects": "Loading projects…",
     "loading_error": "Failed to load projects:",
     "no_projects": "No projects yet.",
     "updating_projects": "Updating…",
 
+    "breadcrumb_details": "/ Projects / {{projectId}}",
     "updating_project": "Updating…",
     "readme_title": "About this project",
     "open_wiki": "Open wiki",

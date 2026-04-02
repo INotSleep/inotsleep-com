@@ -1,10 +1,11 @@
 import { useNavigate, useParams, Link as RouterLink } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Box, Paper, Typography, Button, Stack } from "@mui/material";
+import { Box, Paper, Typography, Button, Stack, Divider } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import axios from "axios";
 import MenuBookIcon from "@mui/icons-material/MenuBook";
 import MarkdownView from "../components/MarkdownView"; // поправь путь, если другой
+import { itemCardSx, monoLabelSx, pagePanelSx, sectionTitleSx, subtleTextSx } from "../theme/neoStyles.js";
 
 export default function ProjectDetails() {
     const navigate = useNavigate();
@@ -71,9 +72,9 @@ export default function ProjectDetails() {
 
     if (isPending) {
         return (
-            <Box sx={{ p: 3 }}>
+            <Paper sx={pagePanelSx}>
                 <Typography>{t("loading_project")}</Typography>
-            </Box>
+            </Paper>
         );
     }
 
@@ -89,12 +90,12 @@ export default function ProjectDetails() {
         }
 
         return (
-            <Box sx={{ p: 3 }}>
+            <Paper sx={pagePanelSx}>
                 <Typography color="error">
                     {t("loading_error")}{" "}
                     {axiosError?.message || String(axiosError)}
                 </Typography>
-            </Box>
+            </Paper>
         );
     }
 
@@ -102,23 +103,19 @@ export default function ProjectDetails() {
 
     return (
         <Paper
-            elevation={2}
-            sx={{
-                width: "100%",
-                p: 3,
-                display: "flex",
-                flexDirection: "column",
-                gap: 3,
-            }}
+            sx={pagePanelSx}
         >
             <Box>
-                <Typography variant="h4" sx={{ mb: 1 }}>
+                <Typography variant="caption" sx={{ ...monoLabelSx, color: "primary.main" }}>
+                    {t("breadcrumb_details", { projectId })}
+                </Typography>
+                <Typography variant="h1" sx={{ mt: 1 }}>
                     {project.name}
                 </Typography>
                 {project.description && (
                     <Typography
-                        variant="body2"
-                        color="text.secondary"
+                        variant="body1"
+                        sx={{ ...subtleTextSx, maxWidth: 900, mt: 0.8 }}
                     >
                         {project.description}
                     </Typography>
@@ -131,14 +128,14 @@ export default function ProjectDetails() {
                 alignItems={{ xs: "flex-start", sm: "center" }}
                 spacing={2}
             >
-                <Stack direction="row" spacing={1} flexWrap="wrap">
+                <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ rowGap: 1 }}>
                     {project.buttons?.map((button, index) => {
                         const isInternal = button.url.startsWith("/");
 
                         return (
                             <Button
                                 key={index}
-                                variant="outlined"
+                                variant={index === 0 ? "contained" : "outlined"}
                                 size="small"
                                 {...(isInternal
                                     ? {
@@ -162,7 +159,6 @@ export default function ProjectDetails() {
                         component={RouterLink}
                         to="wiki"
                         variant="contained"
-                        color="secondary"
                         startIcon={<MenuBookIcon />}
                         size="small"
                     >
@@ -171,11 +167,13 @@ export default function ProjectDetails() {
                 )}
             </Stack>
 
+            <Divider />
+
             {readme && (
-                <Box sx={{ mt: 1 }}>
+                <Box sx={{ ...itemCardSx, p: { xs: 1.5, md: 2.5 } }}>
                     <Typography
-                        variant="h6"
-                        sx={{ mb: 1.5 }}
+                        variant="h5"
+                        sx={{ ...sectionTitleSx, mb: 1.2 }}
                     >
                         {t("readme_title")}
                     </Typography>

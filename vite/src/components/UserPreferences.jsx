@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, IconButton, Menu, MenuItem, Paper } from "@mui/material";
+import { Box, IconButton, Menu, MenuItem } from "@mui/material";
 import Fade from "@mui/material/Fade";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
@@ -8,13 +8,13 @@ import "flag-icons/css/flag-icons.min.css";
 import { ColorModeContext } from "../theme/ColorModeContext";
 
 const LANGUAGES = [
-    { code: "en", label: "English", flag: "gb" }
+    { code: "en", labelKey: "languageEnglish", flag: "gb" }
 ];
 
 function UserPreferences() {
     
     const { mode, toggleMode } = React.useContext(ColorModeContext);
-    const { i18n } = useTranslation();
+    const { i18n, t } = useTranslation("header");
     const [anchorEl, setAnchorEl] = React.useState(null);
 
     const open = Boolean(anchorEl);
@@ -49,31 +49,30 @@ function UserPreferences() {
                     gap: 1
                 }}
             >
-                <Paper
-                    elevation={3}
+                <IconButton
+                    size="small"
+                    onClick={toggleMode}
                     sx={{
-                        borderRadius: "5px",
+                        borderRadius: 1.25,
+                        border: "1px solid",
+                        borderColor: "divider",
+                        bgcolor: "action.hover"
                     }}
+                    aria-label={t("themeToggleAria")}
                 >
-                    <IconButton
-                        size="small"
-                        onClick={toggleMode}
-                        sx={{
-                            borderRadius: "5px",
-                        }}
-                        aria-label="Toggle light/dark mode"
-                    >
-                        <ThemeIcon fontSize="small" />
-                    </IconButton>
-                </Paper>
+                    <ThemeIcon fontSize="small" />
+                </IconButton>
 
                 <IconButton
                     onClick={handleLangOpen}
                     size="small"
                     sx={{
                         p: 0,
-                        borderRadius: "5px",
-                        overflow: "hidden"
+                        borderRadius: 1.25,
+                        border: "1px solid",
+                        borderColor: "divider",
+                        overflow: "hidden",
+                        bgcolor: "action.hover"
                     }}
                 >
                     <span
@@ -83,7 +82,7 @@ function UserPreferences() {
                             fontSize: 24,
                             lineHeight: 1
                         }}
-                        title={current.label}
+                        title={t(current.labelKey)}
                     />
                 </IconButton>
             </Box>
@@ -109,9 +108,9 @@ function UserPreferences() {
                     },
                     paper: {
                         sx: {
-                            borderRadius: "5px",
+                            borderRadius: 1.5,
                             minWidth: "unset",
-                            mt: -1.4
+                            mt: 0.6
                         }
                     },
                     list: {
@@ -139,7 +138,7 @@ function UserPreferences() {
                                 lineHeight: 1,
                                 borderRadius: "5px"
                             }}
-                            title={lang.label}
+                            title={t(lang.labelKey)}
                         />
                     </MenuItem>
                 ))}

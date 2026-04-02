@@ -18,6 +18,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import axios from "axios";
+import { itemCardSx, monoLabelSx, pagePanelSx, sectionTitleSx, subtleTextSx } from "../theme/neoStyles.js";
 
 const PAGE_SIZE = 30;
 
@@ -198,7 +199,7 @@ export default function I18nModeration() {
                 variant="body2"
                 sx={{ whiteSpace: "pre-wrap" }}
             >
-                {String(raw)}
+                {String(parsed)}
             </Typography>
         );
     };
@@ -207,10 +208,10 @@ export default function I18nModeration() {
 
     if (isPending) {
         return (
-            <Box sx={{ p: 3, display: "flex", gap: 2, alignItems: "center" }}>
+            <Paper sx={{ ...pagePanelSx, display: "flex", flexDirection: "row", alignItems: "center" }}>
                 <CircularProgress size={20} />
                 <Typography>{t("mod_loading")}</Typography>
-            </Box>
+            </Paper>
         );
     }
 
@@ -220,31 +221,31 @@ export default function I18nModeration() {
 
         if (status === 403) {
             return (
-                <Box sx={{ p: 3 }}>
+                <Paper sx={pagePanelSx}>
                     <Typography color="error">
                         {t("mod_forbidden")}
                     </Typography>
-                </Box>
+                </Paper>
             );
         }
 
         if (status === 401) {
             return (
-                <Box sx={{ p: 3 }}>
+                <Paper sx={pagePanelSx}>
                     <Typography color="error">
                         {t("mod_auth_required")}
                     </Typography>
-                </Box>
+                </Paper>
             );
         }
 
         return (
-            <Box sx={{ p: 3 }}>
+            <Paper sx={pagePanelSx}>
                 <Typography color="error">
                     {t("loading_error")}{" "}
                     {axiosError?.message || String(axiosError)}
                 </Typography>
-            </Box>
+            </Paper>
         );
     }
 
@@ -254,14 +255,7 @@ export default function I18nModeration() {
 
     return (
         <Paper
-            sx={{
-                p: 3,
-                width: "100%",
-                boxSizing: "border-box",
-                display: "flex",
-                flexDirection: "column",
-                gap: 2
-            }}
+            sx={pagePanelSx}
         >
             {/* Заголовок + фильтры */}
             <Stack
@@ -272,12 +266,15 @@ export default function I18nModeration() {
                 flexWrap="wrap"
             >
                 <Box>
-                    <Typography variant="h5" sx={{ mb: 0.5 }}>
+                    <Typography variant="caption" sx={{ ...monoLabelSx, color: "primary.main" }}>
+                        {t("breadcrumb_moderation")}
+                    </Typography>
+                    <Typography variant="h2" sx={{ ...sectionTitleSx, mt: 0.8 }}>
                         {t("mod_title")}
                     </Typography>
                     <Typography
                         variant="body2"
-                        sx={{ maxWidth: 600, opacity: 0.8 }}
+                        sx={{ ...subtleTextSx, maxWidth: 700 }}
                     >
                         {t("mod_intro")}
                     </Typography>
@@ -368,11 +365,7 @@ export default function I18nModeration() {
                         {list.map((s) => (
                             <Box
                                 key={s.id}
-                                sx={{
-                                    borderRadius: 1,
-                                    border: "1px solid rgba(255,255,255,0.16)",
-                                    p: 1.5
-                                }}
+                                sx={{ ...itemCardSx, p: 1.6 }}
                             >
                                 {/* Верхняя строка: проект + язык + статус */}
                                 <Stack

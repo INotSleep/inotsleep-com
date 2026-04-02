@@ -1,7 +1,8 @@
-import { Box, Stack, Typography, Button, Paper } from '@mui/material';
+import { Stack, Typography, Button, Paper } from '@mui/material';
 import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
 import SearchOffOutlinedIcon from '@mui/icons-material/SearchOffOutlined';
 import { Trans, useTranslation } from 'react-i18next';
+import { pagePanelSx, subtleTextSx } from "../theme/neoStyles.js";
 
 export default function NotFound() {
     const { t } = useTranslation("notfound");
@@ -11,18 +12,20 @@ export default function NotFound() {
     const path = new URLSearchParams(window.location.search).get("path") || pathname
 
     return (
-            <Paper elevation={2} sx={{
-                    maxWidth: 'min(70ch, 90vw)',
+            <Paper sx={{
+                    ...pagePanelSx,
+                    maxWidth: 'min(72ch, 100%)',
                     textAlign: 'center',
-                    p: 4,
+                    mx: "auto",
+                    py: { xs: 5, md: 7 }
                 }}>
                 <Stack spacing={2} alignItems="center">
-                    <SearchOffOutlinedIcon sx={{ fontSize: 56, opacity: 0.8 }} />
-                    <Typography variant="h3" component="h1" sx={{ letterSpacing: 1 }}>
+                    <SearchOffOutlinedIcon sx={{ fontSize: 64, opacity: 0.85, color: "primary.main" }} />
+                    <Typography variant="h1" component="h1">
                         {t("title")}
                     </Typography>
 
-                    <Typography variant="body1">
+                    <Typography variant="body1" sx={subtleTextSx}>
                         <Trans
                             ns="notfound"
                             i18nKey="subtitle"
@@ -36,7 +39,7 @@ export default function NotFound() {
                     </Typography>
 
                     <Stack direction="row" spacing={1} sx={{ pt: 1 }}>
-                        <Button onClick={() => navigate(-1)} variant="contained">
+                        <Button onClick={() => navigate(-1)} variant="outlined">
                             {t("goBackButton")}
                         </Button>
                         <Button component={RouterLink} to="/" variant="contained">

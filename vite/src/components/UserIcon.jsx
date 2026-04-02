@@ -15,7 +15,7 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import axios from "axios";
 import { useTranslation } from "react-i18next";
 
-export default function UserIcon() {
+export default function UserIcon({ compact = false }) {
     const { t } = useTranslation("header");
 
     const [user, setUser] = useState(null);
@@ -82,12 +82,30 @@ export default function UserIcon() {
     };
 
     if (!user) {
+        if (compact) {
+            return (
+                <IconButton
+                    size="small"
+                    onClick={handleLogin}
+                    sx={{
+                        border: "1px solid",
+                        borderColor: "divider",
+                        bgcolor: "action.hover",
+                        color: "primary.main"
+                    }}
+                >
+                    <GitHubIcon fontSize="small" />
+                </IconButton>
+            );
+        }
+
         return (
             <Button
                 size="small"
-                variant="outlined"
+                variant="contained"
                 onClick={handleLogin}
                 startIcon={<GitHubIcon fontSize="small" />}
+                sx={{ minWidth: 112 }}
             >
                 {t("login")}
             </Button>
@@ -118,24 +136,28 @@ export default function UserIcon() {
                     document.body.removeChild(textarea);
                 }
             }
-            setCopyHint("Copied!");
+            setCopyHint(t("copied"));
         } catch {
-            setCopyHint("Failed to copy");
+            setCopyHint(t("copyFailed"));
         }
     };
 
     return (
         <>
-            <Tooltip title={`Logged in as ${login}`}>
+            <Tooltip title={t("loggedInAs", { login })}>
                 <IconButton
                     size="small"
                     onClick={handleAvatarClick}
-                    sx={{ p: 0 }}
+                    sx={{
+                        p: 0,
+                        border: "1px solid",
+                        borderColor: "divider"
+                    }}
                 >
                     <Avatar
                         src={avatarUrl || undefined}
                         alt={login}
-                        sx={{ width: 32, height: 32 }}
+                        sx={{ width: 32, height: 32, bgcolor: "primary.main", color: "primary.contrastText" }}
                     >
                         {!avatarUrl && avatarLetter}
                     </Avatar>
@@ -160,7 +182,7 @@ export default function UserIcon() {
                         <ContentCopyIcon fontSize="small" />
                     </ListItemIcon>
                     <ListItemText
-                        primary={copyHint || "Copy ID"}
+                        primary={copyHint || t("copyId")}
                     />
                 </MenuItem>
 
@@ -168,7 +190,7 @@ export default function UserIcon() {
                     <ListItemIcon>
                         <LogoutIcon fontSize="small" />
                     </ListItemIcon>
-                    <ListItemText primary="Logout" />
+                    <ListItemText primary={t("logout")} />
                 </MenuItem>
             </Menu>
         </>

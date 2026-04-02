@@ -1,58 +1,61 @@
 // src/components/Footer.jsx
 import React from "react";
-import { Paper, Box, Typography, Link } from "@mui/material";
+import { Box, Typography, Link, Stack } from "@mui/material";
 
 export function Footer() {
     const year = new Date().getFullYear();
 
     return (
-        <Paper
-            elevation={2}
+        <Box
             sx={{
-                width: "90%",
-                maxWidth: 1200,
-                borderBottomLeftRadius: 0,
-                borderBottomRightRadius: 0,
-                p: 2,
+                width: "100%",
+                borderTop: "1px solid",
+                borderColor: "divider",
+                background: (theme) =>
+                    theme.palette.mode === "dark"
+                        ? "linear-gradient(180deg, rgba(6,14,32,0.60) 0%, rgba(6,14,32,0.88) 100%)"
+                        : "linear-gradient(180deg, rgba(250,252,255,0.78) 0%, rgba(246,250,255,0.95) 100%)",
+                backdropFilter: "blur(12px)",
+                px: { xs: 2, md: 4 },
+                py: 2.2,
                 display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 2,
-                mt: 2
+                justifyContent: "center",
+                mt: "auto"
             }}
         >
-            <Typography variant="body2" color="text.secondary">
-                © {year} INotSleep
-            </Typography>
-
             <Box
                 sx={{
+                    width: "100%",
+                    maxWidth: 1320,
                     display: "flex",
-                    alignItems: "center",
-                    gap: 2
+                    alignItems: { xs: "flex-start", md: "center" },
+                    justifyContent: "space-between",
+                    gap: 1.5,
+                    flexWrap: "wrap"
                 }}
             >
-                <Link
-                    href="https://github.com/inotsleep"
-                    target="_blank"
-                    rel="noopener"
-                    underline="hover"
+                <Typography
                     variant="body2"
                     color="text.secondary"
+                    sx={{ letterSpacing: "0.08em", textTransform: "uppercase" }}
                 >
-                    GitHub
-                </Link>
-                    {/* <Link
-                        href="https://discord.gg/..."
+                    © {year} INotSleep
+                </Typography>
+
+                <Stack direction="row" spacing={2} sx={{ flexWrap: "wrap" }}>
+                    <Link
+                        href="https://github.com/inotsleep"
                         target="_blank"
                         rel="noopener"
                         underline="hover"
                         variant="body2"
                         color="text.secondary"
+                        sx={{ textTransform: "uppercase", letterSpacing: "0.08em" }}
                     >
-                        Discord
-                    </Link> */}
+                        GitHub
+                    </Link>
+                </Stack>
             </Box>
-        </Paper>
+        </Box>
     );
 }

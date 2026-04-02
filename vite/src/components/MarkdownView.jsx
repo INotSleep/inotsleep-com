@@ -24,17 +24,17 @@ export default function MarkdownView({ children }) {
                 h1: (props) => <Heading level={1} {...props} />,
                 h2: (props) => <Heading level={2} {...props} />,
                 h3: (props) => <Heading level={3} {...props} />,
-                p: ({ node, ...props }) => (
-                    <Typography variant="body1" paragraph {...props} />
+                p: ({ ...props }) => (
+                    <Typography variant="body1" paragraph sx={{ color: "text.secondary" }} {...props} />
                 ),
-                a: ({ node, ...props }) => (
+                a: ({ ...props }) => (
                     <MuiLink
                         {...props}
                         target="_blank"
                         rel="noopener noreferrer"
                     />
                 ),
-                li: ({ node, ...props }) => (
+                li: ({ ...props }) => (
                     <li>
                         <Typography
                             component="span"
@@ -44,7 +44,7 @@ export default function MarkdownView({ children }) {
                     </li>
                 ),
 
-                img: ({ node, ...props }) => (
+                img: ({ ...props }) => (
                     <Box
                         component="img"
                         sx={{
@@ -59,7 +59,7 @@ export default function MarkdownView({ children }) {
                     />
                 ),
 
-                code: ({ node, className, children, ...props }) => {
+                code: ({ className, children, ...props }) => {
                     const raw = String(children).replace(/\n$/, "");
                     const match = /language-(\w+)/.exec(className || "");
                     const hasLineBreak = raw.includes("\n");
@@ -71,7 +71,7 @@ export default function MarkdownView({ children }) {
                                 component="code"
                                 sx={{
                                     fontFamily: "monospace",
-                                    bgcolor: "action.hover",
+                                    bgcolor: "action.selected",
                                     px: 0.5,
                                     borderRadius: 0.5,
                                     fontSize: "0.9em",
@@ -115,6 +115,7 @@ export default function MarkdownView({ children }) {
                                     margin: 0,
                                     borderRadius: 8,
                                     fontSize: "0.9rem",
+                                    border: "1px solid rgba(64,72,93,0.5)"
                                 }}
                                 wrapLongLines
                                 {...props}

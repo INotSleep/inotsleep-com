@@ -2,5 +2,15 @@
     "home": "Home",
     "projects": "Projects",
     "i18nHub": "I18n Hub",
-    "login": "Login"
+    "login": "Login",
+    "menu": "Menu",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "themeToggleAria": "Toggle light or dark theme",
+    "loggedInAs": "Logged in as {{login}}",
+    "copyId": "Copy ID",
+    "copied": "Copied!",
+    "copyFailed": "Failed to copy",
+    "logout": "Logout",
+    "languageEnglish": "English"
 }

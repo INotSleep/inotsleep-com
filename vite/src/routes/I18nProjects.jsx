@@ -4,6 +4,9 @@ import {
     Paper,
     Stack,
     Typography,
+    Divider,
+    Chip,
+    LinearProgress,
     Dialog,
     DialogTitle,
     DialogContent,
@@ -15,6 +18,48 @@ import { useTranslation } from "react-i18next";
 import { Link as RouterLink } from "react-router-dom";
 import axios from "axios";
 import { useState } from "react";
+import { itemCardSx, monoLabelSx, pagePanelSx, subtleTextSx } from "../theme/neoStyles.js";
+
+function normalizeLangCode(code) {
+    return String(code || "")
+        .trim()
+        .toLowerCase()
+        .replace("-", "_");
+}
+
+function pickProgressLang(available, preferred) {
+    const safe = Array.isArray(available) ? available : [];
+    if (safe.length === 0) {
+        return "en_us";
+    }
+
+    const exact = safe.find((code) => normalizeLangCode(code) === normalizeLangCode(preferred));
+    if (exact) {
+        return exact;
+    }
+
+    const enUs = safe.find((code) => normalizeLangCode(code) === "en_us");
+    if (enUs) {
+        return enUs;
+    }
+
+    const en = safe.find((code) => normalizeLangCode(code) === "en");
+    if (en) {
+        return en;
+    }
+
+    return safe[0];
+}
+
+function hasTranslationValue(value) {
+    if (typeof value === "string") {
+        return value.trim().length > 0;
+    }
+    if (Array.isArray(value)) {
+        return value.length > 0 && value.some((item) => String(item || "").trim().length > 0);
+    }
+    return false;
+}
 
 export default function I18nProjects() {
     const { t, i18n } = useTranslation("i18n");
@@ -43,10 +88,13 @@ export default function I18nProjects() {
     } = useQuery({
         queryKey: ["i18n-projects", i18n.language],
         queryFn: async () => {
-            const i18nProjectsRes = await axios.get("/api/i18n/projects");
-            const projectsRes = await axios.get("/api/projects", {
-                params: { lang: i18n.language }
-            });
+            const [i18nProjectsRes, projectsRes, langsRes] = await Promise.all([
+                axios.get("/api/i18n/projects"),
+                axios.get("/api/projects", {
+                    params: { lang: i18n.language }
+                }),
+                axios.get("/api/i18n/languages")
+            ]);
 
             const i18nProjects = Array.isArray(i18nProjectsRes.data)
                 ? i18nProjectsRes.data
@@ -56,6 +104,14 @@ export default function I18nProjects() {
                 ? projectsRes.data
                 : [];
 
+            const languages = Array.isArray(langsRes.data)
+                ? langsRes.data
+                      .map((it) => (typeof it === "string" ? it : it?.code))
+                      .filter(Boolean)
+                : [];
+
+            const progressLang = pickProgressLang(languages, i18n.language);
+
             const projectsMap = {};
             for (const p of rawProjects) {
                 if (p && p.id != null) {
@@ -63,10 +119,57 @@ export default function I18nProjects() {
                 }
             }
 
-            return i18nProjects.map((p) => {
+            const withMeta = i18nProjects.map((p) => {
                 const extra = projectsMap[p.slug] || {};
-                return { ...p, ...extra };
+                return { ...p, ...extra, progressLang };
             });
+
+            return await Promise.all(
+                withMeta.map(async (project) => {
+                    try {
+                        const [keysRes, translationsRes] = await Promise.all([
+                            axios.get(
+                                `/api/i18n/projects/${encodeURIComponent(project.slug)}/keys`
+                            ),
+                            axios.get(
+                                `/api/i18n/projects/${encodeURIComponent(project.slug)}/translations`,
+                                { params: { lang: progressLang } }
+                            )
+                        ]);
+
+                        const keys = Array.isArray(keysRes.data?.keys)
+                            ? keysRes.data.keys
+                            : [];
+                        const translations = translationsRes.data?.translations || {};
+
+                        const totalCount = keys.length;
+                        const translatedCount = keys.reduce((acc, keyRow) => {
+                            if (hasTranslationValue(translations[keyRow.key_name])) {
+                                return acc + 1;
+                            }
+                            return acc;
+                        }, 0);
+                        const progressPercent =
+                            totalCount > 0
+                                ? Math.round((translatedCount / totalCount) * 100)
+                                : 0;
+
+                        return {
+                            ...project,
+                            totalCount,
+                            translatedCount,
+                            progressPercent
+                        };
+                    } catch {
+                        return {
+                            ...project,
+                            totalCount: 0,
+                            translatedCount: 0,
+                            progressPercent: 0
+                        };
+                    }
+                })
+            );
         }
     });
 
@@ -89,7 +192,7 @@ export default function I18nProjects() {
             setLangError(
                 (e && e.response && e.response.data && e.response.data.error) ||
                     e.message ||
-                    "Error"
+                    t("generic_error")
             );
         }
     });
@@ -134,7 +237,7 @@ export default function I18nProjects() {
             setProjectError(
                 (e && e.response && e.response.data && e.response.data.error) ||
                     e.message ||
-                    "Error"
+                    t("generic_error")
             );
         }
     });
@@ -169,20 +272,20 @@ export default function I18nProjects() {
 
     if (isPending) {
         return (
-            <Box sx={{ p: 3 }}>
+            <Paper sx={pagePanelSx}>
                 <Typography>{t("loading_projects")}</Typography>
-            </Box>
+            </Paper>
         );
     }
 
     if (isError) {
         return (
-            <Box sx={{ p: 3 }}>
+            <Paper sx={pagePanelSx}>
                 <Typography color="error">
                     {t("loading_error")}{" "}
                     {error?.message || String(error)}
                 </Typography>
-            </Box>
+            </Paper>
         );
     }
 
@@ -191,21 +294,34 @@ export default function I18nProjects() {
     return (
         <>
             <Paper
-                elevation={2}
-                sx={{
-                    width: "100%",
-                    p: 3,
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 3
-                }}
+                sx={pagePanelSx}
             >
+                <Box>
+                    <Typography variant="caption" sx={{ ...monoLabelSx, color: "primary.main" }}>
+                        {t("breadcrumb_hub")}
+                    </Typography>
+                    <Typography variant="h1" sx={{ mt: 1 }}>
+                        {t("title")}
+                    </Typography>
+                    <Typography variant="body1" sx={{ ...subtleTextSx, mt: 0.8, maxWidth: 860 }}>
+                        {t("hub_intro")}
+                    </Typography>
+                </Box>
+
                 <Stack
                     direction="row"
                     alignItems="center"
                     justifyContent="space-between"
+                    flexWrap="wrap"
+                    gap={1.5}
                 >
-                    <Typography variant="h5">{t("title")}</Typography>
+                    <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ rowGap: 1 }}>
+                        <Chip
+                            size="small"
+                            label={t("projects_count", { count: list.length })}
+                            variant="outlined"
+                        />
+                    </Stack>
 
                     <Stack direction="row" spacing={2} alignItems="center">
                         {isFetching && (
@@ -239,23 +355,27 @@ export default function I18nProjects() {
                     </Stack>
                 </Stack>
 
+                <Divider />
+
                 {list.length === 0 ? (
                     <Typography textAlign="center">
                         {t("no_projects")}
                     </Typography>
                 ) : (
-                    list.map((project) => (
+                    <Box
+                        sx={{
+                            display: "grid",
+                            gridTemplateColumns: { xs: "1fr", md: "repeat(2, minmax(0, 1fr))" },
+                            gap: 1.8
+                        }}
+                    >
+                    {list.map((project) => (
                         <Box
                             key={project.id}
-                            sx={{
-                                border: "1px solid",
-                                borderColor: "divider",
-                                borderRadius: 1,
-                                p: 2
-                            }}
+                            sx={itemCardSx}
                         >
                             <Typography
-                                variant="h6"
+                                variant="h5"
                                 sx={{ mb: 1 }}
                                 style={{
                                     color: "inherit",
@@ -268,25 +388,47 @@ export default function I18nProjects() {
                             {project.description && (
                                 <Typography
                                     variant="body2"
-                                    color="text.secondary"
-                                    sx={{ mb: 2 }}
+                                    sx={{ ...subtleTextSx, mb: 2 }}
                                 >
                                     {project.description}
                                 </Typography>
                             )}
 
+                            <Box sx={{ mb: 1.4 }}>
+                                <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.7 }}>
+                                    <Typography variant="caption" color="text.secondary">
+                                        {t("translation_progress", {
+                                            lang: project.progressLang || "en_us"
+                                        })}
+                                    </Typography>
+                                    <Typography variant="caption" sx={{ ...monoLabelSx, color: "primary.main" }}>
+                                        {project.translatedCount ?? 0}/{project.totalCount ?? 0}
+                                    </Typography>
+                                </Stack>
+                                <LinearProgress
+                                    variant="determinate"
+                                    value={project.progressPercent ?? 0}
+                                    sx={{
+                                        height: 8,
+                                        borderRadius: 999,
+                                        bgcolor: "rgba(64,72,93,0.45)"
+                                    }}
+                                />
+                            </Box>
+
                             <Box
                                 sx={{
                                     display: "flex",
                                     gap: 1,
-                                    flexWrap: "wrap"
+                                    flexWrap: "wrap",
+                                    rowGap: 1
                                 }}
                             >
                                 <Button
-                                    variant="outlined"
+                                    variant="contained"
                                     size="small"
                                     component={RouterLink}
-                                    to={project.slug}
+                                    to={`${project.slug}?lang=${encodeURIComponent(project.progressLang || "en_us")}`}
                                 >
                                     {t("open_project")}
                                 </Button>
@@ -296,7 +438,7 @@ export default function I18nProjects() {
                                         variant="outlined"
                                         size="small"
                                         component={RouterLink}
-                                        to={project.slug+"/manage"}
+                                        to={`${project.slug}/manage?lang=${encodeURIComponent(project.progressLang || "en_us")}`}
                                     >
                                         {t("manage")}
                                     </Button>
@@ -307,14 +449,15 @@ export default function I18nProjects() {
                                         variant="outlined"
                                         size="small"
                                         component={RouterLink}
-                                        to={project.slug+"/moderate"}
+                                        to={`${project.slug}/moderate`}
                                     >
                                         {t("moderate")}
                                     </Button>
                                 }
                             </Box>
                         </Box>
-                    ))
+                    ))}
+                    </Box>
                 )}
             </Paper>
 

@@ -14,9 +14,11 @@ import {
     Button,
     Divider,
     Chip,
+    LinearProgress,
     ToggleButtonGroup,
     ToggleButton
 } from "@mui/material";
+import { itemCardSx, monoLabelSx, pagePanelSx, sectionTitleSx, subtleTextSx } from "../theme/neoStyles.js";
 
 export default function I18nContributeProject() {
     const { slug } = useParams();
@@ -111,7 +113,7 @@ export default function I18nContributeProject() {
         ],
         enabled: Boolean(slug) && languageCodes.length > 0,
         queryFn: async () => {
-            if (!slug) throw new Error("Missing slug");
+            if (!slug) throw new Error(t("missing_slug"));
 
             const [keysRes, srcRes, trgRes] = await Promise.all([
                 axios.get(`/api/i18n/projects/${encodeURIComponent(slug)}/keys`),
@@ -168,7 +170,7 @@ export default function I18nContributeProject() {
                     `${t("suggestion_error_prefix")} ${
                         e?.response?.data?.error ||
                         e?.message ||
-                        "Unknown error"
+                        t("unknown_error")
                     }`
                 );
             }
@@ -196,6 +198,11 @@ export default function I18nContributeProject() {
     const untranslatedCount = Array.isArray(keys)
         ? keys.filter((k) => translations[k.key_name] === undefined).length
         : 0;
+    const translatedCount = Math.max(totalCount - untranslatedCount, 0);
+    const progressPercent =
+        totalCount > 0
+            ? Math.round((translatedCount / totalCount) * 100)
+            : 0;
 
     // ---------- helpers для драфтов ----------
     const handleChangeStringDraft = (keyName, value) => {
@@ -263,10 +270,10 @@ export default function I18nContributeProject() {
     // ---------- LOADING / ERROR (после всех хуков) ----------
     if (isPending || langsLoading) {
         return (
-            <Box sx={{ p: 3, display: "flex", gap: 2, alignItems: "center" }}>
+            <Paper sx={{ ...pagePanelSx, display: "flex", flexDirection: "row", alignItems: "center" }}>
                 <CircularProgress size={20} />
                 <Typography>{t("loading_project")}</Typography>
-            </Box>
+            </Paper>
         );
     }
 
@@ -280,49 +287,45 @@ export default function I18nContributeProject() {
         }
 
         return (
-            <Box sx={{ p: 3 }}>
+            <Paper sx={pagePanelSx}>
                 <Typography color="error">
                     {t("loading_error")}{" "}
                     {axiosError?.message || String(axiosError)}
                 </Typography>
-            </Box>
+            </Paper>
         );
     }
 
     if (!data) {
         return (
-            <Box sx={{ p: 3 }}>
+            <Paper sx={pagePanelSx}>
                 <Typography color="error">
-                    {t("loading_error")}: empty response
+                    {t("loading_error")}: {t("empty_response")}
                 </Typography>
-            </Box>
+            </Paper>
         );
     }
 
     // ---------- RENDER ----------
     return (
         <Paper
-            sx={{
-                p: 3,
-                width: "100%",
-                boxSizing: "border-box",
-                display: "flex",
-                flexDirection: "column",
-                gap: 2
-            }}
+            sx={pagePanelSx}
         >
-            {/* Хедер */}
             <Box
                 sx={{
-                    display: "flex",
-                    flexWrap: "wrap",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: 2
+                    display: "grid",
+                    gridTemplateColumns: { xs: "1fr", lg: "minmax(0, 1fr) auto" },
+                    gap: 2,
+                    alignItems: "stretch"
                 }}
             >
                 <Box>
-                    <Typography variant="h5" sx={{ mb: 0.5 }}>
+                    <Typography variant="caption" sx={{ ...monoLabelSx, color: "primary.main" }}>
+                        {t("breadcrumb_contribute", {
+                            slug: project?.slug || slug
+                        })}
+                    </Typography>
+                    <Typography variant="h2" sx={{ ...sectionTitleSx, mt: 0.8 }}>
                         {t("contribute_title")} — {project.name}
                     </Typography>
 
@@ -337,14 +340,48 @@ export default function I18nContributeProject() {
 
                     <Typography
                         variant="body2"
-                        sx={{ mt: 1, opacity: 0.8, maxWidth: 600 }}
+                        sx={{
+                            ...subtleTextSx,
+                            mt: 1,
+                            maxWidth: 760,
+                            whiteSpace: { xs: "normal", lg: "nowrap" }
+                        }}
                     >
                         {t("contribute_intro")}
                     </Typography>
 
+                    <Stack
+                        direction="row"
+                        spacing={1}
+                        sx={{
+                            mt: 1,
+                            flexWrap: "nowrap",
+                            overflowX: "auto",
+                            pb: 0.4
+                        }}
+                    >
+                        <Chip
+                            size="small"
+                            label={t("progress_translated_label", { percent: progressPercent })}
+                        />
+                        <Chip
+                            size="small"
+                            label={t("progress_keys_label", {
+                                translated: translatedCount,
+                                total: totalCount
+                            })}
+                            variant="outlined"
+                        />
+                    </Stack>
+
                     <Typography
                         variant="caption"
-                        sx={{ mt: 0.5, opacity: 0.8, display: "block" }}
+                        sx={{
+                            mt: 0.8,
+                            opacity: 0.8,
+                            display: "block",
+                            whiteSpace: { xs: "normal", lg: "nowrap" }
+                        }}
                     >
                         {t("keys_stats", {
                             shown: shownCount,
@@ -352,11 +389,27 @@ export default function I18nContributeProject() {
                             untranslated: untranslatedCount
                         })}
                     </Typography>
+
+                    <LinearProgress
+                        variant="determinate"
+                        value={progressPercent}
+                        sx={{ mt: 1, height: 8, borderRadius: 999 }}
+                    />
                 </Box>
 
-                {/* языки + фильтр */}
-                <Stack spacing={1} alignItems="flex-end">
-                    <Stack direction="row" spacing={2} alignItems="center">
+                <Box
+                    sx={{
+                        minWidth: { lg: 360 },
+                        width: "100%",
+                        height: "100%",
+                        display: "flex",
+                        flexDirection: "column"
+                    }}
+                >
+                    <Stack
+                        direction={{ xs: "row", lg: "column" }}
+                        spacing={1}
+                    >
                         <TextField
                             size="small"
                             select
@@ -365,7 +418,7 @@ export default function I18nContributeProject() {
                             onChange={(e) =>
                                 setSelectedSourceLang(e.target.value)
                             }
-                            sx={{ minWidth: 140 }}
+                            sx={{ flex: 1, minWidth: 0 }}
                         >
                             {languageCodes.map((lng) => (
                                 <MenuItem key={lng} value={lng}>
@@ -382,7 +435,7 @@ export default function I18nContributeProject() {
                             onChange={(e) =>
                                 setSelectedTargetLang(e.target.value)
                             }
-                            sx={{ minWidth: 140 }}
+                            sx={{ flex: 1, minWidth: 0 }}
                         >
                             {languageCodes.map((lng) => (
                                 <MenuItem key={lng} value={lng}>
@@ -392,23 +445,40 @@ export default function I18nContributeProject() {
                         </TextField>
                     </Stack>
 
-                    <ToggleButtonGroup
-                        size="small"
-                        exclusive
-                        value={filterMode}
-                        onChange={(_e, val) => {
-                            if (!val) return;
-                            setFilterMode(val);
-                        }}
-                    >
-                        <ToggleButton value="untranslated">
-                            {t("filter_untranslated")}
-                        </ToggleButton>
-                        <ToggleButton value="all">
-                            {t("filter_all")}
-                        </ToggleButton>
-                    </ToggleButtonGroup>
-                </Stack>
+                    <Box sx={{ mt: "auto", pt: 1.2 }}>
+                        <ToggleButtonGroup
+                            size="small"
+                            exclusive
+                            value={filterMode}
+                            onChange={(_e, val) => {
+                                if (!val) return;
+                                setFilterMode(val);
+                            }}
+                            sx={{
+                                width: "100%",
+                                "& .MuiToggleButtonGroup-grouped": {
+                                    flex: 1,
+                                    borderRadius: "0 !important"
+                                },
+                                "& .MuiToggleButtonGroup-firstButton": {
+                                    borderTopLeftRadius: "10px !important",
+                                    borderBottomLeftRadius: "10px !important"
+                                },
+                                "& .MuiToggleButtonGroup-lastButton": {
+                                    borderTopRightRadius: "10px !important",
+                                    borderBottomRightRadius: "10px !important"
+                                }
+                            }}
+                        >
+                            <ToggleButton value="untranslated">
+                                {t("filter_untranslated")}
+                            </ToggleButton>
+                            <ToggleButton value="all">
+                                {t("filter_all")}
+                            </ToggleButton>
+                        </ToggleButtonGroup>
+                    </Box>
+                </Box>
             </Box>
 
             <Divider />
@@ -473,9 +543,8 @@ export default function I18nContributeProject() {
                                     sx={{
                                         display: "flex",
                                         flexDirection: "column",
-                                        borderRadius: 1,
-                                        border: "1px solid rgba(255,255,255,0.12)",
-                                        p: 1.5
+                                        ...itemCardSx,
+                                        p: 2
                                     }}
                                 >
                                     {/* Заголовок + статус */}
@@ -521,199 +590,246 @@ export default function I18nContributeProject() {
                                         </Typography>
                                     )}
 
-                                    {/* Оригинал */}
-                                    <Box sx={{ mt: 1 }}>
-                                        <Typography
-                                            variant="caption"
-                                            sx={{ opacity: 0.7 }}
+                                    <Box
+                                        sx={{
+                                            mt: 1,
+                                            display: "grid",
+                                            gridTemplateColumns: { xs: "1fr", lg: "repeat(2, minmax(0, 1fr))" },
+                                            gap: 1.5
+                                        }}
+                                    >
+                                        <Box
+                                            sx={{
+                                                border: "1px solid",
+                                                borderColor: "divider",
+                                                borderRadius: 1.5,
+                                                p: 1.2,
+                                                background: (theme) =>
+                                                    theme.palette.mode === "dark"
+                                                        ? "linear-gradient(180deg, rgba(6,14,32,0.52) 0%, rgba(10,18,34,0.62) 100%)"
+                                                        : "linear-gradient(180deg, rgba(255,255,255,0.94) 0%, rgba(248,251,255,0.98) 100%)"
+                                            }}
                                         >
-                                            {t("source_value", {
-                                                lang: selectedSourceLang
-                                            })}
-                                        </Typography>
-                                        <Box sx={{ mt: 0.5 }}>
-                                            {srcValue === undefined ? (
-                                                <Typography
-                                                    variant="body2"
-                                                    sx={{ opacity: 0.5 }}
-                                                >
-                                                    {t(
-                                                        "no_translation_for_lang"
-                                                    )}
-                                                </Typography>
-                                            ) : srcIsArray ? (
-                                                <Box
-                                                    component="ul"
-                                                    sx={{
-                                                        pl: 2,
-                                                        m: 0,
-                                                        "& li": {
-                                                            fontSize: "0.9rem",
-                                                            whiteSpace: "pre-wrap",
-                                                            wordBreak: "break-word"
-                                                        }
-                                                    }}
-                                                >
-                                                    {srcValue.map(
-                                                        (line, idx) => (
-                                                            <li key={idx}>
-                                                                {line}
-                                                            </li>
-                                                        )
-                                                    )}
-                                                </Box>
-                                            ) : (
-                                                <Typography
-                                                    variant="body2"
-                                                    sx={{
-                                                        whiteSpace: "pre-wrap"
-                                                    }}
-                                                >
-                                                    {srcValue}
-                                                </Typography>
-                                            )}
-                                        </Box>
-                                    </Box>
-
-                                    {/* Ввод предложения */}
-                                    <Box sx={{ mt: 1.5 }}>
-                                        {isListType ? (
-                                            <Stack spacing={1.5}>
-                                                <Typography
-                                                    variant="caption"
-                                                    sx={{ opacity: 0.7 }}
-                                                >
-                                                    {t("your_suggestion")} (
-                                                    {t("value_type_list")})
-                                                </Typography>
-
-                                                {baseList.map(
-                                                    (item, index) => (
-                                                        <Stack
-                                                            key={index}
-                                                            direction="row"
-                                                            spacing={1}
-                                                            alignItems="center"
-                                                        >
-                                                            <TextField
-                                                                fullWidth
-                                                                multiline
-                                                                minRows={2}
-                                                                maxRows={8}
-                                                                label={t("list_item_label", { index: index + 1 })}
-                                                                value={item}
-                                                                onChange={(e) =>
-                                                                    handleChangeListItem(
-                                                                        k.key_name,
-                                                                        index,
-                                                                        e.target.value,
-                                                                        baseList
-                                                                    )
-                                                                }
-                                                                onKeyDown={(e) => {
-                                                                    const isMac = navigator.platform?.toLowerCase().includes("mac");
-                                                                    const addNew =
-                                                                        (isMac && e.metaKey && e.key === "Enter") ||
-                                                                        (!isMac && e.ctrlKey && e.key === "Enter");
-
-                                                                    if (addNew) {
-                                                                        e.preventDefault();
-                                                                        handleAddListItem(k.key_name, baseList);
-                                                                    }
-                                                                }}
-                                                            />
-
-                                                            {baseList.length >
-                                                                1 && (
-                                                                <Button
-                                                                    size="small"
-                                                                    color="error"
-                                                                    onClick={() =>
-                                                                        handleRemoveListItem(
-                                                                            k.key_name,
-                                                                            index
-                                                                        )
-                                                                    }
-                                                                >
-                                                                    {t(
-                                                                        "remove"
-                                                                    )}
-                                                                </Button>
-                                                            )}
-                                                        </Stack>
-                                                    )
-                                                )}
-
-                                                <Box>
-                                                    <Button
-                                                        size="small"
-                                                        variant="text"
-                                                        onClick={() =>
-                                                            handleAddListItem(
-                                                                k.key_name,
-                                                                baseList
-                                                            )
-                                                        }
+                                            <Typography
+                                                variant="caption"
+                                                sx={{ opacity: 0.74 }}
+                                            >
+                                                {t("source_value", {
+                                                    lang: selectedSourceLang
+                                                })}
+                                            </Typography>
+                                            <Box sx={{ mt: 0.6 }}>
+                                                {srcValue === undefined ? (
+                                                    <Typography
+                                                        variant="body2"
+                                                        sx={{ opacity: 0.56 }}
                                                     >
-                                                        {t("add_list_item")}
-                                                    </Button>
-                                                </Box>
-                                            </Stack>
-                                        ) : (
-                                            <>
-                                                <Typography
-                                                    variant="caption"
-                                                    sx={{ opacity: 0.7 }}
-                                                >
-                                                    {t("your_suggestion")} (
-                                                    {t(
-                                                        "value_type_string"
-                                                    )}
-                                                    )
-                                                </Typography>
-                                                <TextField
-                                                    fullWidth
-                                                    multiline
-                                                    minRows={3}
-                                                    value={
-                                                        effectiveStringDraft
-                                                    }
-                                                    onChange={(e) =>
-                                                        handleChangeStringDraft(
-                                                            k.key_name,
-                                                            e.target.value
-                                                        )
-                                                    }
-                                                    placeholder={t(
-                                                        "suggestion_placeholder"
-                                                    )}
-                                                    sx={{ mt: 0.5 }}
-                                                />
-                                            </>
-                                        )}
+                                                        {t(
+                                                            "no_translation_for_lang"
+                                                        )}
+                                                    </Typography>
+                                                ) : srcIsArray ? (
+                                                    <Stack spacing={0.8}>
+                                                        {srcValue.map(
+                                                            (line, idx) => (
+                                                                <Box
+                                                                    key={idx}
+                                                                    sx={{
+                                                                        display: "grid",
+                                                                        gridTemplateColumns: "28px minmax(0,1fr)",
+                                                                        gap: 1,
+                                                                        alignItems: "start",
+                                                                        border: "1px solid",
+                                                                        borderColor: "divider",
+                                                                        borderRadius: 1.2,
+                                                                        px: 1,
+                                                                        py: 0.75,
+                                                                        bgcolor: (theme) =>
+                                                                            theme.palette.mode === "dark"
+                                                                                ? "rgba(255,255,255,0.02)"
+                                                                                : "rgba(12,110,143,0.03)"
+                                                                    }}
+                                                                >
+                                                                    <Typography
+                                                                        variant="caption"
+                                                                        sx={{
+                                                                            ...monoLabelSx,
+                                                                            color: "text.secondary",
+                                                                            opacity: 0.9
+                                                                        }}
+                                                                    >
+                                                                        {idx + 1}.
+                                                                    </Typography>
+                                                                    <Typography
+                                                                        variant="body2"
+                                                                        sx={{
+                                                                            whiteSpace: "pre-wrap",
+                                                                            wordBreak: "break-word",
+                                                                            lineHeight: 1.55
+                                                                        }}
+                                                                    >
+                                                                        {line}
+                                                                    </Typography>
+                                                                </Box>
+                                                            )
+                                                        )}
+                                                    </Stack>
+                                                ) : (
+                                                    <Typography
+                                                        variant="body2"
+                                                        sx={{
+                                                            whiteSpace: "pre-wrap",
+                                                            wordBreak: "break-word",
+                                                            lineHeight: 1.55
+                                                        }}
+                                                    >
+                                                        {srcValue}
+                                                    </Typography>
+                                                )}
+                                            </Box>
+                                        </Box>
 
                                         <Box
                                             sx={{
-                                                display: "flex",
-                                                justifyContent: "flex-end",
-                                                mt: 1
+                                                border: "1px solid",
+                                                borderColor: "divider",
+                                                borderRadius: 1.5,
+                                                p: 1.2
                                             }}
                                         >
-                                            <Button
-                                                size="small"
-                                                variant="contained"
-                                                onClick={() =>
-                                                    handleSubmitSuggestion(
-                                                        k.key_name,
-                                                        isListType
-                                                    )
-                                                }
-                                                disabled={
-                                                    suggestionMutation.isPending
-                                                }
+                                            {isListType ? (
+                                                <Stack spacing={1.5}>
+                                                    <Typography
+                                                        variant="caption"
+                                                        sx={{ opacity: 0.74 }}
+                                                    >
+                                                        {t("your_suggestion")} ({t("value_type_list")})
+                                                    </Typography>
+
+                                                    {baseList.map(
+                                                        (item, index) => (
+                                                            <Stack
+                                                                key={index}
+                                                                direction={{ xs: "column", md: "row" }}
+                                                                spacing={1}
+                                                                alignItems={{ xs: "stretch", md: "center" }}
+                                                            >
+                                                                <TextField
+                                                                    fullWidth
+                                                                    multiline
+                                                                    size="small"
+                                                                    minRows={1}
+                                                                    maxRows={6}
+                                                                    label={t("list_item_label", { index: index + 1 })}
+                                                                    value={item}
+                                                                    onChange={(e) =>
+                                                                        handleChangeListItem(
+                                                                            k.key_name,
+                                                                            index,
+                                                                            e.target.value,
+                                                                            baseList
+                                                                        )
+                                                                    }
+                                                                    onKeyDown={(e) => {
+                                                                        const isMac = navigator.platform?.toLowerCase().includes("mac");
+                                                                        const addNew =
+                                                                            (isMac && e.metaKey && e.key === "Enter") ||
+                                                                            (!isMac && e.ctrlKey && e.key === "Enter");
+
+                                                                        if (addNew) {
+                                                                            e.preventDefault();
+                                                                            handleAddListItem(k.key_name, baseList);
+                                                                        }
+                                                                    }}
+                                                                />
+
+                                                                {baseList.length > 1 && (
+                                                                    <Button
+                                                                        size="small"
+                                                                        color="error"
+                                                                        onClick={() =>
+                                                                            handleRemoveListItem(
+                                                                                k.key_name,
+                                                                                index
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        {t("remove")}
+                                                                    </Button>
+                                                                )}
+                                                            </Stack>
+                                                        )
+                                                    )}
+
+                                                    <Box>
+                                                        <Button
+                                                            size="small"
+                                                            variant="text"
+                                                            onClick={() =>
+                                                                handleAddListItem(
+                                                                    k.key_name,
+                                                                    baseList
+                                                                )
+                                                            }
+                                                        >
+                                                            {t("add_list_item")}
+                                                        </Button>
+                                                    </Box>
+                                                </Stack>
+                                            ) : (
+                                                <>
+                                                    <Typography
+                                                        variant="caption"
+                                                        sx={{ opacity: 0.74 }}
+                                                    >
+                                                        {t("your_suggestion")} ({t("value_type_string")})
+                                                    </Typography>
+                                                    <TextField
+                                                        fullWidth
+                                                        multiline
+                                                        size="small"
+                                                        minRows={1}
+                                                        maxRows={10}
+                                                        value={
+                                                            effectiveStringDraft
+                                                        }
+                                                        onChange={(e) =>
+                                                            handleChangeStringDraft(
+                                                                k.key_name,
+                                                                e.target.value
+                                                            )
+                                                        }
+                                                        placeholder={t(
+                                                            "suggestion_placeholder"
+                                                        )}
+                                                        sx={{ mt: 0.6 }}
+                                                    />
+                                                </>
+                                            )}
+
+                                            <Box
+                                                sx={{
+                                                    display: "flex",
+                                                    justifyContent: "flex-end",
+                                                    mt: 1.2
+                                                }}
                                             >
-                                                {t("submit_suggestion")}
-                                            </Button>
+                                                <Button
+                                                    size="small"
+                                                    variant="contained"
+                                                    onClick={() =>
+                                                        handleSubmitSuggestion(
+                                                            k.key_name,
+                                                            isListType
+                                                        )
+                                                    }
+                                                    disabled={
+                                                        suggestionMutation.isPending
+                                                    }
+                                                >
+                                                    {t("submit_suggestion")}
+                                                </Button>
+                                            </Box>
                                         </Box>
                                     </Box>
                                 </Box>
