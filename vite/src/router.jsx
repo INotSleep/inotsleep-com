@@ -1,14 +1,24 @@
 import { createBrowserRouter, Outlet } from 'react-router-dom';
-import Home from './routes/Home.jsx';
-import NotFound from './routes/NotFound.jsx';
+import { lazy, Suspense } from 'react';
 import RootLayout from './layouts/RootLayout.jsx';
-import Projects from './routes/Projects.jsx';
-import ProjectDetails from './routes/ProjectDetails.jsx';
-import Wiki from './routes/Wiki.jsx';
-import I18nProjects from './routes/I18nProjects.jsx';
-import ManageI18nProject from './routes/ManageI18nProject.jsx';
-import I18nContributeProject from './routes/I18nContributeProject.jsx';
-import I18nModeration from './routes/I18nModeration.jsx';
+
+const Home = lazy(() => import('./routes/Home.jsx'));
+const NotFound = lazy(() => import('./routes/NotFound.jsx'));
+const Projects = lazy(() => import('./routes/Projects.jsx'));
+const ProjectDetails = lazy(() => import('./routes/ProjectDetails.jsx'));
+const Wiki = lazy(() => import('./routes/Wiki.jsx'));
+const I18nProjects = lazy(() => import('./routes/I18nProjects.jsx'));
+const ManageI18nProject = lazy(() => import('./routes/ManageI18nProject.jsx'));
+const I18nContributeProject = lazy(() => import('./routes/I18nContributeProject.jsx'));
+const I18nModeration = lazy(() => import('./routes/I18nModeration.jsx'));
+
+function withSuspense(element) {
+    return (
+        <Suspense fallback={<div style={{ padding: 24 }}>Loading...</div>}>
+            {element}
+        </Suspense>
+    );
+}
 
 export const router = createBrowserRouter(
     [
@@ -18,7 +28,7 @@ export const router = createBrowserRouter(
             children: [
                 {
                     index: true,
-                    element: <Home />,
+                    element: withSuspense(<Home />),
                 },
 
                 {
@@ -27,7 +37,7 @@ export const router = createBrowserRouter(
                     children: [
                         {
                             index: true,
-                            element: <Projects />,
+                            element: withSuspense(<Projects />),
                         },
                         {
                             element: <Outlet />,
@@ -35,11 +45,11 @@ export const router = createBrowserRouter(
                             children: [
                                 {
                                     index: true,
-                                    element: <ProjectDetails />,
+                                    element: withSuspense(<ProjectDetails />),
                                 },
                                 {
                                     path: "wiki/*",
-                                    element: <Wiki />
+                                    element: withSuspense(<Wiki />)
                                 }
                             ]
                         }
@@ -52,26 +62,26 @@ export const router = createBrowserRouter(
                     children: [
                         {
                             index: true,
-                            element: <I18nProjects />
+                            element: withSuspense(<I18nProjects />)
                         },
                         {
                             path: ":slug",
-                            element: <I18nContributeProject />
+                            element: withSuspense(<I18nContributeProject />)
                         },
                         {
                             path: ":slug/manage",
-                            element: <ManageI18nProject />
+                            element: withSuspense(<ManageI18nProject />)
                         },
                         {
                             path: ":slug/moderate",
-                            element: <I18nModeration />
+                            element: withSuspense(<I18nModeration />)
                         }
                     ]
                 },
                 
                 {
                     path: '*',
-                    element: <NotFound />,
+                    element: withSuspense(<NotFound />),
                 }
             ]
         }

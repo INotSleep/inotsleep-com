@@ -1,6 +1,111 @@
 import sqlite from 'better-sqlite3';
+import crypto from 'node:crypto';
 
 let db;
+const ENCRYPTED_TOKEN_PREFIX = 'enc:v1:';
+let accessTokenKeyCache = undefined;
+let missingAccessTokenKeyWarned = false;
+
+function getAccessTokenCipherKey() {
+    if (accessTokenKeyCache !== undefined) {
+        return accessTokenKeyCache;
+    }
+
+    const configuredKey = [
+        process.env.ACCESS_TOKEN_ENCRYPTION_KEY,
+        process.env.OAUTH_CLIENT_SECRET
+    ].find((v) => typeof v === 'string' && v.trim().length > 0);
+
+    if (!configuredKey) {
+        accessTokenKeyCache = null;
+        return accessTokenKeyCache;
+    }
+
+    accessTokenKeyCache = crypto
+        .createHash('sha256')
+        .update(configuredKey.trim())
+        .digest();
+
+    return accessTokenKeyCache;
+}
+
+function warnMissingAccessTokenKey() {
+    if (missingAccessTokenKeyWarned) return;
+    missingAccessTokenKeyWarned = true;
+    console.warn(
+        'ACCESS_TOKEN_ENCRYPTION_KEY (or OAUTH_CLIENT_SECRET) is not configured, access tokens are stored in plaintext.'
+    );
+}
+
+function encryptAccessToken(accessToken) {
+    if (typeof accessToken !== 'string' || accessToken.length === 0) {
+        return null;
+    }
+
+    const key = getAccessTokenCipherKey();
+    if (!key) {
+        warnMissingAccessTokenKey();
+        return accessToken;
+    }
+
+    const iv = crypto.randomBytes(12);
+    const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+    const encrypted = Buffer.concat([
+        cipher.update(accessToken, 'utf8'),
+        cipher.final()
+    ]);
+    const tag = cipher.getAuthTag();
+
+    return `${ENCRYPTED_TOKEN_PREFIX}${iv.toString('base64url')}.${encrypted.toString('base64url')}.${tag.toString('base64url')}`;
+}
+
+function decryptAccessToken(storedToken) {
+    if (typeof storedToken !== 'string' || storedToken.length === 0) {
+        return null;
+    }
+
+    if (!storedToken.startsWith(ENCRYPTED_TOKEN_PREFIX)) {
+        return storedToken;
+    }
+
+    const key = getAccessTokenCipherKey();
+    if (!key) {
+        warnMissingAccessTokenKey();
+        return null;
+    }
+
+    const encoded = storedToken.slice(ENCRYPTED_TOKEN_PREFIX.length);
+    const parts = encoded.split('.');
+    if (parts.length !== 3) {
+        return null;
+    }
+
+    try {
+        const iv = Buffer.from(parts[0], 'base64url');
+        const encrypted = Buffer.from(parts[1], 'base64url');
+        const authTag = Buffer.from(parts[2], 'base64url');
+
+        const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+        decipher.setAuthTag(authTag);
+        const decrypted = Buffer.concat([
+            decipher.update(encrypted),
+            decipher.final()
+        ]);
+
+        return decrypted.toString('utf8');
+    } catch {
+        return null;
+    }
+}
+
+function normalizeUserRow(row) {
+    if (!row) return row;
+
+    return {
+        ...row,
+        access_token: decryptAccessToken(row.access_token)
+    };
+}
 
 function init() {
     db = new sqlite('database.db');
@@ -23,6 +128,36 @@ function ensureI18nKeyTypeColumn() {
          SET value_type = 'string'
          WHERE value_type IS NULL OR TRIM(value_type) = '';`
     ).run();
+}
+
+function migrateAccessTokensAtRest() {
+    const key = getAccessTokenCipherKey();
+    if (!key) {
+        return;
+    }
+
+    const rows = db.prepare(
+        `SELECT id, access_token
+         FROM users
+         WHERE access_token IS NOT NULL
+           AND TRIM(access_token) != '';`
+    ).all();
+
+    const updateStmt = db.prepare(
+        `UPDATE users SET access_token = ? WHERE id = ?;`
+    );
+
+    const tx = db.transaction(() => {
+        for (const row of rows) {
+            if (typeof row.access_token !== 'string') continue;
+            if (row.access_token.startsWith(ENCRYPTED_TOKEN_PREFIX)) continue;
+
+            const encrypted = encryptAccessToken(row.access_token);
+            updateStmt.run(encrypted, row.id);
+        }
+    });
+
+    tx();
 }
 
 
@@ -114,6 +249,7 @@ function prepareDB() {
     `).run();
 
     ensureI18nKeyTypeColumn();
+    migrateAccessTokensAtRest();
 }
 
 function normalizeKeyType(type) {
@@ -143,25 +279,29 @@ const AUDIT_ACTION = {
 };
 
 function getUser(id) {
-    return db.prepare('SELECT * FROM users WHERE id = ?;').get(id);
+    const row = db.prepare('SELECT * FROM users WHERE id = ?;').get(id);
+    return normalizeUserRow(row);
 }
 
 function getUserByGitHubId(githubId) {
-    return db.prepare('SELECT * FROM users WHERE github_id = ?;').get(githubId);
+    const row = db.prepare('SELECT * FROM users WHERE github_id = ?;').get(githubId);
+    return normalizeUserRow(row);
 }
 
 function createUser(githubId, githubLogin, githubAvatarUrl, accessToken) {
     const id = crypto.randomUUID();
+    const tokenToStore = encryptAccessToken(accessToken);
     db.prepare(
         'INSERT INTO users (id, github_id, github_login, github_avatar_url, access_token) VALUES (?, ?, ?, ?, ?);'
-    ).run(id, githubId, githubLogin, githubAvatarUrl, accessToken);
+    ).run(id, githubId, githubLogin, githubAvatarUrl, tokenToStore);
     return getUser(id);
 }
 
 function modifyUser(id, githubLogin, githubAvatarUrl, accessToken) {
+    const tokenToStore = encryptAccessToken(accessToken);
     db.prepare(
         'UPDATE users SET github_login = ?, github_avatar_url = ?, access_token = ? WHERE id = ?;'
-    ).run(githubLogin, githubAvatarUrl, accessToken, id);
+    ).run(githubLogin, githubAvatarUrl, tokenToStore, id);
     return getUser(id);
 }
 
@@ -270,6 +410,70 @@ function getI18nTranslationsForProjectLanguage(projectId, language) {
         }
     }
     return result;
+}
+
+function hasMeaningfulTranslationValue(encodedValue) {
+    if (typeof encodedValue !== 'string' || encodedValue.length === 0) {
+        return false;
+    }
+
+    try {
+        const value = JSON.parse(encodedValue);
+
+        if (typeof value === 'string') {
+            return value.trim().length > 0;
+        }
+        if (Array.isArray(value)) {
+            return value.some(
+                (item) => typeof item === 'string' && item.trim().length > 0
+            );
+        }
+        return false;
+    } catch {
+        return false;
+    }
+}
+
+function getI18nProjectProgress(language) {
+    const rows = db.prepare(
+        `SELECT p.id AS project_id,
+                p.slug AS project_slug,
+                p.name AS project_name,
+                k.id AS key_id,
+                t.value AS translation_value
+         FROM i18n_supported_projects p
+         LEFT JOIN i18n_keys k
+           ON k.project_id = p.id
+         LEFT JOIN i18n_translations t
+           ON t.key_id = k.id
+          AND t.language = ?
+         ORDER BY p.slug ASC;`
+    ).all(language);
+
+    const progressMap = new Map();
+
+    for (const row of rows) {
+        const projectId = row.project_id;
+        if (!progressMap.has(projectId)) {
+            progressMap.set(projectId, {
+                id: row.project_id,
+                slug: row.project_slug,
+                name: row.project_name,
+                totalCount: 0,
+                translatedCount: 0
+            });
+        }
+
+        const item = progressMap.get(projectId);
+        if (row.key_id != null) {
+            item.totalCount += 1;
+            if (hasMeaningfulTranslationValue(row.translation_value)) {
+                item.translatedCount += 1;
+            }
+        }
+    }
+
+    return Array.from(progressMap.values());
 }
 
 /**
@@ -682,6 +886,7 @@ export {
     getI18nKeysForProject,
     createI18nKeysBulk,
     getI18nTranslationsForProjectLanguage,
+    getI18nProjectProgress,
     bulkImportI18nTranslations,
     createI18nSuggestion,
     getI18nSuggestionsByStatus,

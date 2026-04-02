@@ -16,6 +16,7 @@ import {
     createI18nProject,
     createI18nKeysBulk,
     getI18nTranslationsForProjectLanguage,
+    getI18nProjectProgress,
     bulkImportI18nTranslations,
     createI18nSuggestion,
     getI18nSuggestionsByStatus,
@@ -86,6 +87,41 @@ function init(app) {
             res.send(projects);
         } catch (err) {
             console.error('Error fetching i18n projects', err);
+            res.status(500).send({ error: 'Internal server error' });
+        }
+    });
+
+    app.get('/api/i18n/projects/progress', (req, res) => {
+        const lang = String(req.query.lang || 'en_us')
+            .trim()
+            .toLowerCase();
+
+        if (!/^[a-z0-9_-]{2,24}$/i.test(lang)) {
+            return res.status(400).send({ error: 'Invalid language code' });
+        }
+
+        try {
+            const rows = getI18nProjectProgress(lang);
+            const payload = rows.map((row) => {
+                const totalCount = row.totalCount || 0;
+                const translatedCount = row.translatedCount || 0;
+                const progressPercent = totalCount > 0
+                    ? Math.round((translatedCount / totalCount) * 100)
+                    : 0;
+
+                return {
+                    id: row.id,
+                    slug: row.slug,
+                    name: row.name,
+                    totalCount,
+                    translatedCount,
+                    progressPercent
+                };
+            });
+
+            res.send(payload);
+        } catch (err) {
+            console.error('Error fetching i18n project progress', err);
             res.status(500).send({ error: 'Internal server error' });
         }
     });
@@ -502,17 +538,27 @@ function init(app) {
         const user = requirePermission(req, res, 'i18n.manage');
         if (!user) return;
 
-        const id = req.params.id;
-        const slug = req.params.slug
+        const slug = req.params.slug;
+        const idRaw = String(req.params.id || "");
+        const id = Number(idRaw);
+
+        if (!isValidProjectSlug(slug)) {
+            return res.status(400).send({ error: "Invalid project slug" });
+        }
+        if (!/^\d+$/.test(idRaw) || !Number.isSafeInteger(id) || id <= 0) {
+            return res.status(400).send({ error: "Invalid key id" });
+        }
 
         try {
             const project = getI18nProjectBySlug(slug);
-            if (!project) return res.status(404).send({ error: "Project not found" })
+            if (!project) return res.status(404).send({ error: "Project not found" });
 
-            const key = getI18nKey(id)
-            if (!key) return res.status(404).send({ error: "Key not found" })
+            const key = getI18nKey(id);
+            if (!key) return res.status(404).send({ error: "Key not found" });
 
-            console.log(project)
+            if (Number(key.project_id) !== Number(project.id)) {
+                return res.status(404).send({ error: "Key not found in this project" });
+            }
 
             deleteI18nKey(id);
 

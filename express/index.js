@@ -2,13 +2,38 @@ import express from 'express';
 import fs from 'fs/promises';
 import { db } from './modules/database.js'
 import dotenv from 'dotenv';
+import helmet from 'helmet';
+import { rateLimit } from 'express-rate-limit';
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 async function start() {
-    app.use(express.json())
+    const isProduction = process.env.NODE_ENV === "production";
+
+    app.disable("x-powered-by");
+    app.set("trust proxy", isProduction ? 1 : false);
+
+    app.use(
+        helmet({
+            contentSecurityPolicy: false,
+            crossOriginEmbedderPolicy: false
+        })
+    );
+
+    app.use(
+        "/api",
+        rateLimit({
+            windowMs: 60 * 1000,
+            max: 120,
+            standardHeaders: true,
+            legacyHeaders: false
+        })
+    );
+
+    app.use(express.json({ limit: "1mb" }));
+    app.use(express.urlencoded({ extended: false, limit: "1mb" }));
 
 
     let modules = [];

@@ -1,11 +1,110 @@
 import express from 'express';
-import axios from 'axios';
 import { getPermissions, getUser } from './database.js';
 import path from 'path';
-import fs from 'fs';
+import fs from 'node:fs/promises';
 
 const projectsRoot = path.join(process.cwd(), "data", "projects");
 const projectsJsonPath = path.join(process.cwd(), "data", "projects.json");
+const projectAssetsRoot = path.join(process.cwd(), "data", "assets", "projects");
+const globalAssetsRoot = path.join(process.cwd(), "data", "assets", "global");
+
+const LANG_RE = /^[a-z0-9]{2,12}(?:[_-][a-z0-9]{2,12})?$/i;
+const PROJECT_ID_RE = /^[a-z0-9_-]+$/i;
+const ASSET_NAME_RE = /^[a-z0-9._-]+$/i;
+const PAGE_ID_RE = /^[a-z0-9_-]+$/i;
+
+function isValidProjectId(value) {
+    return typeof value === "string" && PROJECT_ID_RE.test(value);
+}
+
+function isSafePathSegment(value) {
+    return typeof value === "string" &&
+        !value.includes("..") &&
+        !value.includes("/") &&
+        !value.includes("\\");
+}
+
+function isValidAssetName(value) {
+    return typeof value === "string" &&
+        ASSET_NAME_RE.test(value) &&
+        isSafePathSegment(value);
+}
+
+function isValidLang(value) {
+    return typeof value === "string" && LANG_RE.test(value);
+}
+
+function normalizeLang(value, fallback = "en") {
+    const normalized = String(value ?? fallback)
+        .trim()
+        .toLowerCase()
+        .replaceAll("-", "_");
+
+    if (!isValidLang(normalized)) {
+        return null;
+    }
+
+    return normalized;
+}
+
+function resolveInside(baseDir, ...segments) {
+    const baseResolved = path.resolve(baseDir);
+    const target = path.resolve(baseResolved, ...segments);
+    const normalizedBase = `${baseResolved}${path.sep}`;
+
+    if (target !== baseResolved && !target.startsWith(normalizedBase)) {
+        return null;
+    }
+
+    return target;
+}
+
+async function pathExists(targetPath) {
+    if (!targetPath) return false;
+    try {
+        await fs.access(targetPath);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+async function readJsonFile(targetPath) {
+    const raw = await fs.readFile(targetPath, "utf-8");
+    return JSON.parse(raw);
+}
+
+async function loadProjectsConfig() {
+    if (!(await pathExists(projectsJsonPath))) {
+        return null;
+    }
+
+    try {
+        return await readJsonFile(projectsJsonPath);
+    } catch {
+        return null;
+    }
+}
+
+async function resolveProjectLangDir(projectId, lang) {
+    const projectDir = resolveInside(projectsRoot, projectId);
+    if (!projectDir || !(await pathExists(projectDir))) {
+        return null;
+    }
+
+    const preferredLangDir = resolveInside(projectDir, lang);
+    if (preferredLangDir && await pathExists(preferredLangDir)) {
+        return { projectDir, lang, langDir: preferredLangDir };
+    }
+
+    const fallbackLang = "en";
+    const fallbackLangDir = resolveInside(projectDir, fallbackLang);
+    if (fallbackLangDir && await pathExists(fallbackLangDir)) {
+        return { projectDir, lang: fallbackLang, langDir: fallbackLangDir };
+    }
+
+    return { projectDir, lang: fallbackLang, langDir: null };
+}
 
 function requireAuth(req, res) {
     if (!req.session || !req.session.userId) {
@@ -71,13 +170,16 @@ function init(app) {
     });
 
     app.get("/api/projects", async (req, res) => {
-        const lang = (req.query.lang || "en").toString();
+        const lang = normalizeLang(req.query.lang || "en");
+        if (!lang) {
+            return res.status(400).send({ error: "Invalid lang" });
+        }
 
-        if (!fs.existsSync(projectsJsonPath)) {
+        const projects = await loadProjectsConfig();
+        if (!projects) {
             return res.status(500).send({ error: "projects.json not found" });
         }
 
-        const projects = JSON.parse(fs.readFileSync(projectsJsonPath, "utf-8"));
         const result = projects[lang] || projects["en"] || [];
 
         res.send(result);
@@ -94,26 +196,24 @@ function init(app) {
 
     app.get("/api/projects/:projectId", async (req, res) => {
         const projectId = req.params.projectId;
-        let lang = (req.query.lang || "en").toString();
+        const lang = normalizeLang(req.query.lang || "en");
 
-        if (!lang.match(/^[a-z]/i)) {
+        if (!lang) {
             return res.status(400).send({ error: "Invalid lang" })
         }
 
-        if (!projectId.match(/^[a-z0-9_-]+$/i)) {
+        if (!isValidProjectId(projectId)) {
             return res.status(400).send({ error: "Invalid project ID" });
         }
 
-        if (!fs.existsSync(projectsJsonPath)) {
+        const projects = await loadProjectsConfig();
+        if (!projects) {
             return res.status(500).send({ error: "projects.json not found" });
         }
 
-        const projects = JSON.parse(fs.readFileSync(projectsJsonPath, "utf-8"));
-
         let list = projects[lang];
         if (!Array.isArray(list)) {
-            lang = "en";
-            list = projects[lang] || [];
+            list = projects["en"] || [];
         }
 
         const project = list.find((p) => p.id === projectId);
@@ -126,33 +226,31 @@ function init(app) {
 
     app.get("/api/projects/:projectId/readme", async (req, res) => {
         const projectId = req.params.projectId;
-        let lang = (req.query.lang || "en").toString();
+        const lang = normalizeLang(req.query.lang || "en");
 
-        if (!lang.match(/^[a-z]/i)) {
+        if (!lang) {
             return res.status(400).send({ error: "Invalid lang" })
         }
 
-        if (!projectId.match(/^[a-z0-9_-]+$/i)) {
+        if (!isValidProjectId(projectId)) {
             return res.status(400).send({ error: "Invalid project ID" });
         }
 
-        const projectDir = path.join(projectsRoot, projectId);
-
-        if (!fs.existsSync(projectDir)) {
+        const resolvedProject = await resolveProjectLangDir(projectId, lang);
+        if (!resolvedProject) {
             return res.status(404).send({ error: "Project not found" });
         }
 
-        const langDir = path.join(projectDir, lang);
-        if (!fs.existsSync(langDir)) {
-            lang = "en";
-        }
-
-        const readmePath = path.join(projectsRoot, projectId, lang, "README.md");
-        if (!fs.existsSync(readmePath)) {
+        if (!resolvedProject.langDir) {
             return res.status(404).send({ error: "README not found" });
         }
 
-        const readmeContent = fs.readFileSync(readmePath, "utf-8");
+        const readmePath = resolveInside(resolvedProject.langDir, "README.md");
+        if (!readmePath || !(await pathExists(readmePath))) {
+            return res.status(404).send({ error: "README not found" });
+        }
+
+        const readmeContent = await fs.readFile(readmePath, "utf-8");
         res.send({ readme: readmeContent });
     });
 
@@ -160,19 +258,27 @@ function init(app) {
     app.get("/api/projects/:projectId/assets/:assetName", async (req, res) => {
         const projectId = req.params.projectId;
         const assetName = req.params.assetName;
-        let lang = (req.query.lang || "en").toString();
+        const lang = normalizeLang(req.query.lang || "en");
 
-        if (!lang.match(/^[a-z]/i)) {
+        if (!lang) {
             return res.status(400).send({ error: "Invalid lang" })
         }
 
-        if (!projectId.match(/^[a-z0-9_-]+$/i) || !assetName.match(/^[a-z0-9._-]+$/i)) {
+        if (!isValidProjectId(projectId) || !isValidAssetName(assetName)) {
             return res.status(400).send({ error: "Invalid project ID or asset name" });
         }
 
-        const assetPath = path.join(process.cwd(), 'data', 'assets', 'projects', projectId, lang, assetName);
+        const projectAssetBase = resolveInside(projectAssetsRoot, projectId);
+        if (!projectAssetBase || !(await pathExists(projectAssetBase))) {
+            return res.status(404).send({ error: "Asset not found" });
+        }
 
-        if (!fs.existsSync(assetPath)) {
+        let assetPath = resolveInside(projectAssetBase, lang, assetName);
+        if (!assetPath || !(await pathExists(assetPath))) {
+            assetPath = resolveInside(projectAssetBase, "en", assetName);
+        }
+
+        if (!assetPath || !(await pathExists(assetPath))) {
             return res.status(404).send({ error: "Asset not found" });
         }
 
@@ -184,13 +290,13 @@ function init(app) {
     app.get("/api/assets/:assetName", async (req, res) => {
         const assetName = req.params.assetName;
 
-        if (!assetName.match(/^[a-z0-9._-]+$/i)) {
+        if (!isValidAssetName(assetName)) {
             return res.status(400).send({ error: "Invalid asset name" });
         }
 
-        const assetPath = path.join(process.cwd(), 'data', 'assets', 'global', assetName);
+        const assetPath = resolveInside(globalAssetsRoot, assetName);
 
-        if (!fs.existsSync(assetPath)) {
+        if (!assetPath || !(await pathExists(assetPath))) {
             return res.status(404).send({ error: "Asset not found" });
         }
 
@@ -200,47 +306,58 @@ function init(app) {
 
     app.get("/api/projects/:projectId/wiki", async(req, res) => {
         const projectId = req.params.projectId;
-        const lang = req.query.lang || 'en';
+        const lang = normalizeLang(req.query.lang || "en");
 
-        if (!projectId.match(/^[a-z0-9_-]+$/i)) {
+        if (!isValidProjectId(projectId)) {
             return res.status(400).send({ error: "Invalid project ID" });
         }
+        if (!lang) {
+            return res.status(400).send({ error: "Invalid lang" });
+        }
 
-        if (!fs.existsSync(path.join(process.cwd(), 'data', 'projects', projectId))) {
+        const resolvedProject = await resolveProjectLangDir(projectId, lang);
+        if (!resolvedProject) {
             return res.status(404).send({ error: "Project not found" });
         }
 
-        if (!fs.existsSync(path.join(process.cwd(), 'data', 'projects', projectId, lang))) {
-            lang = 'en';
+        if (!resolvedProject.langDir) {
+            return res.status(200).send({ provided: false });
         }
 
+        const pagesJson = resolveInside(resolvedProject.langDir, "wiki", "pages.json");
+        const provided = pagesJson ? await pathExists(pagesJson) : false;
+
         return res.status(200).send({
-            provided: fs.existsSync(path.join(process.cwd(), 'data', 'projects', projectId, lang, 'wiki', 'pages.json'))
+            provided
         })
     })
 
     app.get("/api/projects/:projectId/wiki/pages", async (req, res) => {
         const projectId = req.params.projectId;
-        const lang = req.query.lang || 'en';
+        const lang = normalizeLang(req.query.lang || "en");
 
-        if (!projectId.match(/^[a-z0-9_-]+$/i)) {
+        if (!isValidProjectId(projectId)) {
             return res.status(400).send({ error: "Invalid project ID" });
         }
+        if (!lang) {
+            return res.status(400).send({ error: "Invalid lang" });
+        }
 
-        if (!fs.existsSync(path.join(process.cwd(), 'data', 'projects', projectId))) {
+        const resolvedProject = await resolveProjectLangDir(projectId, lang);
+        if (!resolvedProject) {
             return res.status(404).send({ error: "Project not found" });
         }
 
-        if (!fs.existsSync(path.join(process.cwd(), 'data', 'projects', projectId, lang))) {
-            lang = 'en';
-        }
-
-        if (!fs.existsSync(path.join(process.cwd(), 'data', 'projects', projectId, lang, 'wiki', 'pages.json'))) {
+        if (!resolvedProject.langDir) {
             return res.status(404).send({ error: "Wiki not found" });
         }
 
-        const pagesIndexPath = path.join(process.cwd(), 'data', 'projects', projectId, lang, 'wiki', 'pages.json');
-        const pagesIndex = JSON.parse(fs.readFileSync(pagesIndexPath, 'utf-8'));
+        const pagesIndexPath = resolveInside(resolvedProject.langDir, "wiki", "pages.json");
+        if (!pagesIndexPath || !(await pathExists(pagesIndexPath))) {
+            return res.status(404).send({ error: "Wiki not found" });
+        }
+
+        const pagesIndex = await readJsonFile(pagesIndexPath);
 
         res.send(pagesIndex);
     });
@@ -248,34 +365,39 @@ function init(app) {
     app.get("/api/projects/:projectId/wiki/pages/:pageId", async (req, res) => {
         const projectId = req.params.projectId;
         const pageId = req.params.pageId;
-        const lang = req.query.lang || 'en';
+        const lang = normalizeLang(req.query.lang || "en");
 
-        if (!projectId.match(/^[a-z0-9_-]+$/i)) {
+        if (!isValidProjectId(projectId)) {
             return res.status(400).send({ error: "Invalid project ID" });
         }
+        if (!lang) {
+            return res.status(400).send({ error: "Invalid lang" });
+        }
 
-        if (!pageId.match(/^[a-z0-9_-]+$/i)) {
+        if (!PAGE_ID_RE.test(pageId)) {
             return res.status(400).send({ error: "Invalid page ID" });
         }
 
-        if (!fs.existsSync(path.join(process.cwd(), 'data', 'projects', projectId))) {
+        const resolvedProject = await resolveProjectLangDir(projectId, lang);
+        if (!resolvedProject) {
             return res.status(404).send({ error: "Project not found" });
         }
 
-        if (!fs.existsSync(path.join(process.cwd(), 'data', 'projects', projectId, lang))) {
-            lang = 'en';
-        }
-
-        if (!fs.existsSync(path.join(process.cwd(), 'data', 'projects', projectId, lang, 'wiki'))) {
+        if (!resolvedProject.langDir) {
             return res.status(404).send({ error: "Wiki not found" });
         }
 
-        const pagePath = path.join(process.cwd(), 'data', 'projects', projectId, lang, 'wiki', 'pages', `${pageId}.md`);
-        if (!fs.existsSync(pagePath)) {
+        const wikiDir = resolveInside(resolvedProject.langDir, "wiki");
+        if (!wikiDir || !(await pathExists(wikiDir))) {
+            return res.status(404).send({ error: "Wiki not found" });
+        }
+
+        const pagePath = resolveInside(wikiDir, "pages", `${pageId}.md`);
+        if (!pagePath || !(await pathExists(pagePath))) {
             return res.status(404).send({ error: "Page not found" });
         }
 
-        const pageContent = fs.readFileSync(pagePath, 'utf-8');
+        const pageContent = await fs.readFile(pagePath, 'utf-8');
         res.send({ content: pageContent });
     });
 }

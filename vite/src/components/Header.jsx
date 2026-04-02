@@ -13,7 +13,6 @@ import {
     ListItemButton,
     ListItemText
 } from "@mui/material";
-import GitHubIcon from "@mui/icons-material/GitHub";
 import MenuIcon from "@mui/icons-material/Menu";
 import CloseIcon from "@mui/icons-material/Close";
 import UserPreferences from "./UserPreferences.jsx";
@@ -158,22 +157,6 @@ export function Header() {
                         flexShrink: 0
                     }}
                 >
-                    <IconButton
-                        size="small"
-                        component="a"
-                        href="https://github.com/inotsleep"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        sx={{
-                            color: "primary.main",
-                            border: "1px solid",
-                            borderColor: "divider",
-                            bgcolor: "action.hover"
-                        }}
-                    >
-                        <GitHubIcon fontSize="small" />
-                    </IconButton>
-
                     <UserIcon />
                     <UserPreferences />
                 </Stack>
@@ -287,25 +270,9 @@ export function Header() {
                     <Stack
                         direction="row"
                         alignItems="center"
-                        justifyContent="space-between"
+                        justifyContent="flex-end"
                         sx={{ px: 2, py: 1.5 }}
                     >
-                        <IconButton
-                            size="small"
-                            component="a"
-                            href="https://github.com/inotsleep"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            sx={{
-                                color: "primary.main",
-                                border: "1px solid",
-                                borderColor: "divider",
-                                bgcolor: "action.hover"
-                            }}
-                        >
-                            <GitHubIcon fontSize="small" />
-                        </IconButton>
-
                         <UserPreferences />
                     </Stack>
                 </Box>

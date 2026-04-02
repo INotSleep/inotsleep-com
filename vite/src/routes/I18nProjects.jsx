@@ -51,16 +51,6 @@ function pickProgressLang(available, preferred) {
     return safe[0];
 }
 
-function hasTranslationValue(value) {
-    if (typeof value === "string") {
-        return value.trim().length > 0;
-    }
-    if (Array.isArray(value)) {
-        return value.length > 0 && value.some((item) => String(item || "").trim().length > 0);
-    }
-    return false;
-}
-
 export default function I18nProjects() {
     const { t, i18n } = useTranslation("i18n");
     const queryClient = useQueryClient();
@@ -88,17 +78,12 @@ export default function I18nProjects() {
     } = useQuery({
         queryKey: ["i18n-projects", i18n.language],
         queryFn: async () => {
-            const [i18nProjectsRes, projectsRes, langsRes] = await Promise.all([
-                axios.get("/api/i18n/projects"),
+            const [projectsRes, langsRes] = await Promise.all([
                 axios.get("/api/projects", {
                     params: { lang: i18n.language }
                 }),
                 axios.get("/api/i18n/languages")
             ]);
-
-            const i18nProjects = Array.isArray(i18nProjectsRes.data)
-                ? i18nProjectsRes.data
-                : [];
 
             const rawProjects = Array.isArray(projectsRes.data)
                 ? projectsRes.data
@@ -111,65 +96,30 @@ export default function I18nProjects() {
                 : [];
 
             const progressLang = pickProgressLang(languages, i18n.language);
+            const progressRes = await axios.get("/api/i18n/projects/progress", {
+                params: { lang: progressLang }
+            });
+
+            const i18nProjects = Array.isArray(progressRes.data)
+                ? progressRes.data
+                : [];
 
             const projectsMap = {};
             for (const p of rawProjects) {
-                if (p && p.id != null) {
-                    projectsMap[p.id] = p;
+                if (!p) continue;
+
+                if (p.id != null) {
+                    projectsMap[String(p.id)] = p;
+                }
+                if (typeof p.slug === "string" && p.slug.length > 0) {
+                    projectsMap[p.slug] = p;
                 }
             }
 
-            const withMeta = i18nProjects.map((p) => {
-                const extra = projectsMap[p.slug] || {};
-                return { ...p, ...extra, progressLang };
+            return i18nProjects.map((project) => {
+                const extra = projectsMap[project.slug] || projectsMap[String(project.id)] || {};
+                return { ...project, ...extra, progressLang };
             });
-
-            return await Promise.all(
-                withMeta.map(async (project) => {
-                    try {
-                        const [keysRes, translationsRes] = await Promise.all([
-                            axios.get(
-                                `/api/i18n/projects/${encodeURIComponent(project.slug)}/keys`
-                            ),
-                            axios.get(
-                                `/api/i18n/projects/${encodeURIComponent(project.slug)}/translations`,
-                                { params: { lang: progressLang } }
-                            )
-                        ]);
-
-                        const keys = Array.isArray(keysRes.data?.keys)
-                            ? keysRes.data.keys
-                            : [];
-                        const translations = translationsRes.data?.translations || {};
-
-                        const totalCount = keys.length;
-                        const translatedCount = keys.reduce((acc, keyRow) => {
-                            if (hasTranslationValue(translations[keyRow.key_name])) {
-                                return acc + 1;
-                            }
-                            return acc;
-                        }, 0);
-                        const progressPercent =
-                            totalCount > 0
-                                ? Math.round((translatedCount / totalCount) * 100)
-                                : 0;
-
-                        return {
-                            ...project,
-                            totalCount,
-                            translatedCount,
-                            progressPercent
-                        };
-                    } catch {
-                        return {
-                            ...project,
-                            totalCount: 0,
-                            translatedCount: 0,
-                            progressPercent: 0
-                        };
-                    }
-                })
-            );
         }
     });
 

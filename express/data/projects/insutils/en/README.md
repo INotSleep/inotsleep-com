@@ -103,8 +103,3 @@ dependencies {
 ```
 
 Then extend the provided base plugin class and start using the config and i18n helpers in your own code.
-
----
-
-For more detailed documentation, examples and advanced usage, see the **Wiki** linked on this page.
-
