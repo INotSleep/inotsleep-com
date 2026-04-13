@@ -301,6 +301,8 @@ function init(app) {
         }
 
         res.setHeader("Access-Control-Allow-Origin", "*");
+        res.setHeader("cross-origin-resource-policy", "cross-origin");
+        
         res.sendFile(assetPath);
     });
     
