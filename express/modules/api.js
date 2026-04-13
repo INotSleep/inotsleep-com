@@ -300,10 +300,10 @@ function init(app) {
             return res.status(404).send({ error: "Asset not found" });
         }
 
-
+        res.setHeader("Access-Control-Allow-Origin", "*");
         res.sendFile(assetPath);
     });
-
+    
     app.get("/api/projects/:projectId/wiki", async(req, res) => {
         const projectId = req.params.projectId;
         const lang = normalizeLang(req.query.lang || "en");
