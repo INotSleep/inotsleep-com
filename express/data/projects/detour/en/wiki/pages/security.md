@@ -37,4 +37,4 @@ The full design: [docs/teams.md](https://github.com/INotSleep/Detour/blob/main/d
 
 ## Reporting a vulnerability
 
-Please don't open a public issue. Write to the author through [GitHub](https://github.com/INotSleep) and give them time to release a fix.
+Please don't open a public issue. Report it privately through [GitHub's security advisories](https://github.com/INotSleep/Detour/security/advisories/new). The report stays private until a fixed release is out. What counts as a vulnerability is described in the [security policy](https://github.com/INotSleep/Detour/blob/main/SECURITY.md).
