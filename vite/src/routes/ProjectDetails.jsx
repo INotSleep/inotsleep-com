@@ -1,195 +1,104 @@
-import { useNavigate, useParams, Link as RouterLink } from "react-router-dom";
+import { Navigate, useParams, Link as RouterLink } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Box, Paper, Typography, Button, Stack, Divider } from "@mui/material";
+import { Button, Paper, Stack, Typography } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import axios from "axios";
-import MenuBookIcon from "@mui/icons-material/MenuBook";
-import MarkdownView from "../components/MarkdownView"; // поправь путь, если другой
-import { itemCardSx, monoLabelSx, pagePanelSx, sectionTitleSx, subtleTextSx } from "../theme/neoStyles.js";
+import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import MarkdownView from "../components/MarkdownView";
+import { ErrorState, ExternalOrInternalButton, LoadingState, PageHeader } from "../components/ui.jsx";
+
+async function getOptional(url, params) {
+    try {
+        return (await axios.get(url, { params })).data;
+    } catch (err) {
+        if (err?.response?.status === 404) return null;
+        throw err;
+    }
+}
 
 export default function ProjectDetails() {
-    const navigate = useNavigate();
     const { projectId } = useParams();
     const { t, i18n } = useTranslation("projects");
 
-    const {
-        data,
-        isPending,
-        isError,
-        error,
-        isFetching,
-    } = useQuery({
+    const { data, isPending, isError, error, refetch } = useQuery({
         queryKey: ["project", i18n.language, projectId],
         queryFn: async () => {
-            const projectRes = await axios.get(`/api/projects/${projectId}`, {
-                params: { lang: i18n.language },
-            });
-
-            let readmeText = "";
-            try {
-                const readmeRes = await axios.get(
-                    `/api/projects/${projectId}/readme`,
-                    {
-                        params: { lang: i18n.language },
-                    }
-                );
-                readmeText = (readmeRes.data?.readme || "").replace("{{LANG}}", i18n.language);
-            } catch (err) {
-                const axiosError = err;
-                if (axiosError?.response?.status !== 404) {
-                    throw err;
-                }
-            }
-
-            let hasWiki = false;
-            try {
-                const wikiRes = await axios.get(
-                    `/api/projects/${projectId}/wiki`,
-                    {
-                        params: { lang: i18n.language },
-                    }
-                );
-                hasWiki = Boolean(
-                    wikiRes.data?.provided !== undefined
-                        ? wikiRes.data.provided
-                        : wikiRes.data
-                );
-            } catch (err) {
-                const axiosError = err;
-                if (axiosError?.response?.status !== 404) {
-                    throw err;
-                }
-            }
+            const params = { lang: i18n.language };
+            const [projectRes, readmeData, wikiData] = await Promise.all([
+                axios.get(`/api/projects/${projectId}`, { params }),
+                getOptional(`/api/projects/${projectId}/readme`, params),
+                getOptional(`/api/projects/${projectId}/wiki`, params)
+            ]);
 
             return {
-                project: projectRes.data, 
-                readme: readmeText,       
-                hasWiki,                  
+                project: projectRes.data,
+                readme: (readmeData?.readme || "").replace("{{LANG}}", i18n.language),
+                hasWiki: Boolean(
+                    wikiData?.provided !== undefined ? wikiData.provided : wikiData
+                )
             };
-        },
-        refetchOnWindowFocus: false,
+        }
     });
 
-    if (isPending) {
-        return (
-            <Paper sx={pagePanelSx}>
-                <Typography>{t("loading_project")}</Typography>
-            </Paper>
-        );
-    }
+    const back = { to: "/projects", label: t("back_to_projects") };
+
+    if (isPending) return <LoadingState minHeight="50vh" />;
 
     if (isError) {
-        const axiosError = error;
-
-        if (
-            axiosError?.response?.status === 404 ||
-            axiosError?.message?.includes("404")
-        ) {
-            navigate(`/404?path=/projects/${projectId}`);
-            return null;
+        if (error?.response?.status === 404) {
+            return <Navigate to={`/404?path=/projects/${projectId}`} replace />;
         }
-
         return (
-            <Paper sx={pagePanelSx}>
-                <Typography color="error">
-                    {t("loading_error")}{" "}
-                    {axiosError?.message || String(axiosError)}
-                </Typography>
-            </Paper>
+            <>
+                <PageHeader title={projectId} back={back} />
+                <ErrorState error={error} onRetry={refetch} />
+            </>
         );
     }
 
     const { project, readme, hasWiki } = data;
+    const buttons = project.buttons || [];
 
     return (
-        <Paper
-            sx={pagePanelSx}
-        >
-            <Box>
-                <Typography variant="caption" sx={{ ...monoLabelSx, color: "primary.main" }}>
-                    {t("breadcrumb_details", { projectId })}
-                </Typography>
-                <Typography variant="h1" sx={{ mt: 1 }}>
-                    {project.name}
-                </Typography>
+        <>
+            <PageHeader title={project.name} back={back}>
                 {project.description && (
-                    <Typography
-                        variant="body1"
-                        sx={{ ...subtleTextSx, maxWidth: 900, mt: 0.8 }}
-                    >
+                    <Typography color="text.secondary" sx={{ maxWidth: 760, fontSize: "1.1rem" }}>
                         {project.description}
                     </Typography>
                 )}
-            </Box>
-
-            <Stack
-                direction={{ xs: "column", sm: "row" }}
-                justifyContent="space-between"
-                alignItems={{ xs: "flex-start", sm: "center" }}
-                spacing={2}
-            >
-                <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ rowGap: 1 }}>
-                    {project.buttons?.map((button, index) => {
-                        const isInternal = button.url.startsWith("/");
-
-                        return (
+                {(hasWiki || buttons.length > 0) && (
+                    <Stack direction="row" gap={1} flexWrap="wrap" sx={{ mt: 1 }}>
+                        {hasWiki && (
                             <Button
-                                key={index}
-                                variant={index === 0 ? "contained" : "outlined"}
-                                size="small"
-                                {...(isInternal
-                                    ? {
-                                          component: RouterLink,
-                                          to: button.url,
-                                      }
-                                    : {
-                                          href: button.url,
-                                          target: "_blank",
-                                          rel: "noopener noreferrer",
-                                      })}
+                                component={RouterLink}
+                                to="wiki"
+                                variant="contained"
+                                startIcon={<MenuBookOutlinedIcon />}
+                            >
+                                {t("open_wiki")}
+                            </Button>
+                        )}
+                        {buttons.map((button, index) => (
+                            <ExternalOrInternalButton
+                                key={button.url}
+                                url={button.url}
+                                variant={!hasWiki && index === 0 ? "contained" : "outlined"}
+                                endIcon={button.url.startsWith("/") ? null : <OpenInNewIcon sx={{ fontSize: "16px !important" }} />}
                             >
                                 {button.label}
-                            </Button>
-                        );
-                    })}
-                </Stack>
-
-                {hasWiki && (
-                    <Button
-                        component={RouterLink}
-                        to="wiki"
-                        variant="contained"
-                        startIcon={<MenuBookIcon />}
-                        size="small"
-                    >
-                        {t("open_wiki")}
-                    </Button>
+                            </ExternalOrInternalButton>
+                        ))}
+                    </Stack>
                 )}
-            </Stack>
-
-            <Divider />
+            </PageHeader>
 
             {readme && (
-                <Box sx={{ ...itemCardSx, p: { xs: 1.5, md: 2.5 } }}>
-                    <Typography
-                        variant="h5"
-                        sx={{ ...sectionTitleSx, mb: 1.2 }}
-                    >
-                        {t("readme_title")}
-                    </Typography>
+                <Paper component="article" sx={{ p: { xs: 2.5, md: 5 } }}>
                     <MarkdownView>{readme}</MarkdownView>
-                </Box>
+                </Paper>
             )}
-
-            {isFetching && (
-                <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{ fontStyle: "italic", mt: 1 }}
-                >
-                    {t("updating_project")}
-                </Typography>
-            )}
-        </Paper>
+        </>
     );
 }

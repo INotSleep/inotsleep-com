@@ -1,53 +1,43 @@
-import { Stack, Typography, Button, Paper } from '@mui/material';
-import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
-import SearchOffOutlinedIcon from '@mui/icons-material/SearchOffOutlined';
-import { Trans, useTranslation } from 'react-i18next';
-import { pagePanelSx, subtleTextSx } from "../theme/neoStyles.js";
+import { Box, Button, Stack, Typography } from '@mui/material';
+import { Link as RouterLink, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { monoSx } from '../lib/utils.js';
+import { fontHeading } from '../theme/theme.js';
 
 export default function NotFound() {
     const { t } = useTranslation("notfound");
     const navigate = useNavigate();
     const { pathname } = useLocation();
+    const [searchParams] = useSearchParams();
 
-    const path = new URLSearchParams(window.location.search).get("path") || pathname
+    const path = searchParams.get("path") || pathname;
+    const canGoBack = window.history.state?.idx > 0;
 
     return (
-            <Paper sx={{
-                    ...pagePanelSx,
-                    maxWidth: 'min(72ch, 100%)',
-                    textAlign: 'center',
-                    mx: "auto",
-                    py: { xs: 5, md: 7 }
-                }}>
-                <Stack spacing={2} alignItems="center">
-                    <SearchOffOutlinedIcon sx={{ fontSize: 64, opacity: 0.85, color: "primary.main" }} />
-                    <Typography variant="h1" component="h1">
-                        {t("title")}
-                    </Typography>
+        <Box sx={{ py: { xs: 6, md: 12 }, textAlign: "center" }}>
+            <Typography
+                aria-hidden
+                sx={{ fontFamily: fontHeading, fontWeight: 700, fontSize: "4.5rem", lineHeight: 1, color: "primary.main" }}
+            >
+                404
+            </Typography>
+            <Typography variant="h2" component="h1" sx={{ mt: 2 }}>
+                {t("title")}
+            </Typography>
+            <Typography color="text.secondary" sx={{ mt: 1, overflowWrap: "anywhere" }}>
+                <Box component="code" sx={monoSx}>{path}</Box>
+            </Typography>
 
-                    <Typography variant="body1" sx={subtleTextSx}>
-                        <Trans
-                            ns="notfound"
-                            i18nKey="subtitle"
-                            values={{ path: path }}
-                            components={{
-                                code: <code />,
-                                strong: <strong />
-                            }}
-                        />
-
-                    </Typography>
-
-                    <Stack direction="row" spacing={1} sx={{ pt: 1 }}>
-                        <Button onClick={() => navigate(-1)} variant="outlined">
-                            {t("goBackButton")}
-                        </Button>
-                        <Button component={RouterLink} to="/" variant="contained">
-                            {t("homeButton")}
-                        </Button>
-                    </Stack>
-                </Stack>
-            </Paper>
+            <Stack direction="row" gap={1.5} justifyContent="center" sx={{ mt: 4 }}>
+                {canGoBack && (
+                    <Button onClick={() => navigate(-1)} variant="outlined">
+                        {t("goBackButton")}
+                    </Button>
+                )}
+                <Button component={RouterLink} to="/" variant="contained">
+                    {t("homeButton")}
+                </Button>
+            </Stack>
+        </Box>
     );
 }
-    

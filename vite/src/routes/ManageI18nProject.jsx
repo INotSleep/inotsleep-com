@@ -1,184 +1,138 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { Navigate, useParams, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import {
     Box,
-    Typography,
-    CircularProgress,
-    Paper,
-    Stack,
     Button,
     Chip,
-    Divider,
-    TextField,
+    IconButton,
+    InputAdornment,
     MenuItem,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions
+    Paper,
+    Stack,
+    TextField,
+    Tooltip,
+    Typography
 } from "@mui/material";
-import { itemCardSx, monoLabelSx, pagePanelSx, sectionTitleSx, subtleTextSx } from "../theme/neoStyles.js";
+import AddIcon from "@mui/icons-material/Add";
+import CloseIcon from "@mui/icons-material/Close";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import SearchIcon from "@mui/icons-material/Search";
+import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
+import LanguageSelect from "../components/LanguageSelect.jsx";
+import { EmptyState, ErrorState, LoadingState, PageHeader } from "../components/ui.jsx";
+import { ConfirmDialog, FormDialog } from "../components/dialogs.jsx";
+import { usePermissions } from "../lib/auth.js";
+import { useToast } from "../lib/toast.js";
+import { errorMessage, monoSx } from "../lib/utils.js";
+import { pickLanguage, useI18nLanguages } from "../lib/queries.js";
+import { languageName } from "../lib/languages.js";
 
-export default function I18nProject() {
+const EMPTY_ROW = { key: "", type: "string", description: "" };
+
+function keyTypeOf(keyRow, value) {
+    const raw = String(keyRow?.value_type ?? keyRow?.valueType ?? keyRow?.type ?? "").toLowerCase();
+    if (raw === "list" || raw === "array") return "list";
+    if (raw === "string") return "string";
+    return Array.isArray(value) ? "list" : "string";
+}
+
+function ValuePreview({ value }) {
+    if (Array.isArray(value)) {
+        return (
+            <Box component="ol" sx={{ m: 0, pl: 2.5 }}>
+                {value.map((line, idx) => (
+                    <Typography key={idx} component="li" variant="body2" sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                        {line}
+                    </Typography>
+                ))}
+            </Box>
+        );
+    }
+    return (
+        <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+            {value}
+        </Typography>
+    );
+}
+
+export default function ManageI18nProject() {
     const { slug } = useParams();
-    const navigate = useNavigate();
-    const location = useLocation();
+    const [searchParams, setSearchParams] = useSearchParams();
     const queryClient = useQueryClient();
-
+    const toast = useToast();
     const { t } = useTranslation("i18n");
+    const { canManage, canUpload } = usePermissions();
 
-    const { data: langsData } = useQuery({
-        queryKey: ["i18n-languages"],
+    const langsQuery = useI18nLanguages();
+    const languages = langsQuery.data;
+    const lang = pickLanguage(languages, searchParams.get("lang"), "en_us");
+
+    const setLang = (code) =>
+        setSearchParams(
+            (prev) => {
+                const next = new URLSearchParams(prev);
+                next.set("lang", code);
+                return next;
+            },
+            { replace: true }
+        );
+
+    const { data, isPending, isError, error, refetch } = useQuery({
+        queryKey: ["i18n-project", slug, lang],
+        enabled: Boolean(slug) && Boolean(languages),
         queryFn: async () => {
-            const res = await axios.get("/api/i18n/languages");
-            return Array.isArray(res.data) ? res.data : [];
-        }
-    });
-
-    const supportedLangs = useMemo(() => {
-        return langsData && langsData.length > 0 ? langsData : ["en"];
-    }, [langsData]);
-
-    const [selectedLang, setSelectedLang] = useState(() => {
-        const params = new URLSearchParams(location.search);
-        return params.get("lang") || "en";
-    });
-
-    useEffect(() => {
-        if (!supportedLangs || supportedLangs.length === 0) return;
-
-        const params = new URLSearchParams(location.search);
-        const urlLang = params.get("lang");
-
-        let next = selectedLang;
-
-        if (!supportedLangs.includes(next)) {
-            next = supportedLangs[0];
-            setSelectedLang(next);
-        }
-
-        if (urlLang !== next) {
-            params.set("lang", next);
-            navigate(
-                {
-                    pathname: location.pathname,
-                    search: params.toString()
-                },
-                { replace: true }
-            );
-        }
-    }, [selectedLang, supportedLangs, location.pathname, location.search, navigate]);
-
-    // -------------------- права пользователя --------------------
-    const {
-        data: permissions,
-        isError: permsError
-    } = useQuery({
-        queryKey: ["permissions"],
-        queryFn: async () => {
-            const res = await axios.get("/api/permissions");
-            return res.data || [];
-        }
-    });
-
-    const canManage = permissions?.includes("i18n.manage") ?? false;
-    const canUpload = permissions?.includes("i18n.upload") ?? false;
-
-    const {
-        data,
-        isPending,
-        isError,
-        error,
-        isFetching
-    } = useQuery({
-        queryKey: ["i18n-project", slug, selectedLang],
-        enabled: Boolean(slug),
-        queryFn: async () => {
-            if (!slug) throw new Error(t("missing_slug"));
-
+            const base = `/api/i18n/projects/${encodeURIComponent(slug)}`;
             const [keysRes, trRes] = await Promise.all([
-                axios.get(`/api/i18n/projects/${encodeURIComponent(slug)}/keys`),
-                axios.get(
-                    `/api/i18n/projects/${encodeURIComponent(slug)}/translations`,
-                    { params: { lang: selectedLang } }
-                )
+                axios.get(`${base}/keys`),
+                axios.get(`${base}/translations`, { params: { lang } })
             ]);
-
             return {
                 project: keysRes.data.project,
                 keys: keysRes.data.keys || [],
                 translations: trRes.data.translations || {}
             };
-        }
+        },
+        placeholderData: (prev) => (prev?.project?.slug === slug ? prev : undefined)
     });
 
-    // -------------------- add keys dialog --------------------
-    const [addDialogOpen, setAddDialogOpen] = useState(false);
-    const [addRows, setAddRows] = useState([{ key: "", type: "string", description: "" }]);
+    const refresh = () => {
+        queryClient.invalidateQueries({ queryKey: ["i18n-project", slug] });
+        queryClient.invalidateQueries({ queryKey: ["i18n-progress"] });
+    };
+
+    const [search, setSearch] = useState("");
+    const keys = useMemo(() => {
+        const all = data?.keys || [];
+        const q = search.trim().toLowerCase();
+        return q ? all.filter((k) => k.key_name.toLowerCase().includes(q)) : all;
+    }, [data, search]);
+
+    // ---- add keys ----
+    const [addOpen, setAddOpen] = useState(false);
+    const [addRows, setAddRows] = useState([EMPTY_ROW]);
     const [addError, setAddError] = useState("");
 
     const addKeysMutation = useMutation({
-        mutationFn: async (payload) => {
-            return axios.post(
-                `/api/i18n/projects/${encodeURIComponent(slug)}/keys`,
-                payload
-            );
+        mutationFn: (payload) => axios.post(`/api/i18n/projects/${encodeURIComponent(slug)}/keys`, payload),
+        onSuccess: (_res, payload) => {
+            refresh();
+            setAddOpen(false);
+            setAddRows([EMPTY_ROW]);
+            toast(t("keys_added", { count: payload.keys.length }));
         },
-        onSuccess: () => {
-            queryClient.invalidateQueries({
-                queryKey: ["i18n-project", slug, selectedLang]
-            });
-            setAddDialogOpen(false);
-            setAddRows([{ key: "", type: "string", description: "" }]);
-            setAddError("");
-        },
-        onError: (e) => {
-            setAddError(
-                e?.response?.data?.error ||
-                    e?.message ||
-                    t("add_keys_failed")
-            );
-        }
+        onError: (e) => setAddError(errorMessage(e, t("add_keys_failed")))
     });
 
-    const handleAddKeysClick = () => {
-        setAddDialogOpen(true);
-        setAddError("");
-        if (!addRows || addRows.length === 0) {
-            setAddRows([{ key: "", type: "string", description: "" }]);
-        }
-    };
-
-    const handleAddKeysClose = () => {
-        if (addKeysMutation.isPending) return;
-        setAddDialogOpen(false);
-        setAddError("");
-    };
-
-    const handleAddRow = () => {
-        setAddRows((prev) => [...prev, { key: "", type: "string", description: "" }]);
-    };
-
-    const handleRemoveRow = (index) => {
-        setAddRows((prev) => prev.filter((_, i) => i !== index));
-    };
-
-    const handleChangeRow = (index, field, value) => {
-        setAddRows((prev) =>
-            prev.map((row, i) =>
-                i === index ? { ...row, [field]: value } : row
-            )
-        );
-    };
-
-    const handleAddKeysSubmit = () => {
+    const submitAddKeys = () => {
         const prepared = addRows
             .map((row) => ({
-                key: (row.key || "").trim(),
-                type: (row.type || "string").toString().trim().toLowerCase(),
-                description: (row.description || "").trim() || null
+                key: row.key.trim(),
+                type: row.type,
+                description: row.description.trim() || null
             }))
             .filter((row) => row.key.length > 0);
 
@@ -186,750 +140,482 @@ export default function I18nProject() {
             setAddError(t("add_keys_no_valid_lines"));
             return;
         }
-
         addKeysMutation.mutate({ keys: prepared });
     };
 
-    // -------------------- import yaml dialog --------------------
-    const [importDialogOpen, setImportDialogOpen] = useState(false);
-    const [importLang, setImportLang] = useState(selectedLang);
+    const changeRow = (index, field, value) => {
+        setAddError("");
+        setAddRows((prev) => prev.map((row, i) => (i === index ? { ...row, [field]: value } : row)));
+    };
+
+    // ---- import yaml ----
+    const [importOpen, setImportOpen] = useState(false);
+    const [importLang, setImportLang] = useState(lang);
     const [importYaml, setImportYaml] = useState("");
     const [importError, setImportError] = useState("");
 
-    const importYamlMutation = useMutation({
-        mutationFn: async () => {
-            return axios.post(
-                `/api/i18n/projects/${encodeURIComponent(slug)}/import`,
-                {
-                    language: importLang,
-                    yaml: importYaml
-                }
-            );
-        },
+    const importMutation = useMutation({
+        mutationFn: () =>
+            axios.post(`/api/i18n/projects/${encodeURIComponent(slug)}/import`, {
+                language: importLang,
+                yaml: importYaml
+            }),
         onSuccess: () => {
-            queryClient.invalidateQueries({
-                queryKey: ["i18n-project", slug, selectedLang]
-            });
-            setImportDialogOpen(false);
-            setImportError("");
+            refresh();
+            setImportOpen(false);
+            setImportYaml("");
+            toast(t("import_done", { lang: languageName(importLang) }));
         },
-        onError: (e) => {
-            setImportError(
-                e?.response?.data?.error ||
-                    e?.message ||
-                    t("import_yaml_failed")
-            );
-        }
+        onError: (e) => setImportError(errorMessage(e, t("import_yaml_failed")))
     });
 
-    const handleImportClick = () => {
-        setImportLang(selectedLang);
-        setImportDialogOpen(true);
-        setImportError("");
-    };
-
-    const handleImportClose = () => {
-        if (importYamlMutation.isPending) return;
-        setImportDialogOpen(false);
-        setImportError("");
-    };
-
-    const handleImportSubmit = () => {
+    const submitImport = () => {
         if (!importYaml.trim()) {
             setImportError(t("import_yaml_empty"));
             return;
         }
-        importYamlMutation.mutate();
+        importMutation.mutate();
     };
 
-    // -------------------- edit dialog --------------------
-    const [editDialogOpen, setEditDialogOpen] = useState(false);
-    const [editKeyName, setEditKeyName] = useState("");
+    const loadYamlFile = async (file) => {
+        if (!file) return;
+        setImportError("");
+        setImportYaml(await file.text());
+    };
+
+    // ---- edit ----
+    const [editKey, setEditKey] = useState(null); // key row, kept while the dialog closes
+    const [editOpen, setEditOpen] = useState(false);
     const [editDescription, setEditDescription] = useState("");
-
-    const [editKeyType, setEditKeyType] = useState(null); // "string" | "list" | null
-    const [editValueType, setEditValueType] = useState("string");
-
-    const [editStringValue, setEditStringValue] = useState("");
-    const [editListItems, setEditListItems] = useState([""]);
+    const [editString, setEditString] = useState("");
+    const [editLines, setEditLines] = useState([""]);
     const [editError, setEditError] = useState("");
+    const editIsList = editKey ? keyTypeOf(editKey, data?.translations[editKey.key_name]) === "list" : false;
 
-    const updateTranslationMutation = useMutation({
-        mutationFn: async ({ key, language, value, description }) => {
-            await axios.post(
-                `/api/i18n/projects/${encodeURIComponent(slug)}/translations`,
-                { key, language, value, description }
-            );
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({
-                queryKey: ["i18n-project", slug, selectedLang]
-            });
-            setEditDialogOpen(false);
-            setEditError("");
-        },
-        onError: (e) => {
-            setEditError(
-                e?.response?.data?.error ||
-                    e?.message ||
-                    t("update_translation_failed")
-            );
-        }
-    });
+    const openEdit = (keyRow) => {
+        const current = data.translations[keyRow.key_name];
+        const isList = keyTypeOf(keyRow, current) === "list";
 
-    const deleteKeyMutation = useMutation({
-        mutationFn: async (keyId) => {
-            return axios.delete(
-                `/api/i18n/projects/${encodeURIComponent(slug)}/keys/${keyId}`
-            );
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({
-                queryKey: ["i18n-project", slug, selectedLang]
-            });
-        },
-        onError: (e) => {
-            alert(
-                e?.response?.data?.error ||
-                    e?.message ||
-                    t("delete_key_failed")
-            );
-        }
-    });
-
-    const handleDeleteClick = (keyRow) => {
-        const confirmed = window.confirm(
-            t("delete_key_confirm", {
-                key: keyRow.key_name
-            })
-        );
-        if (!confirmed) return;
-
-        deleteKeyMutation.mutate(keyRow.id);
-    };
-
-    const normalizeKeyType = (k, value) => {
-        const raw =
-            k?.value_type ??
-            k?.valueType ??
-            k?.type ??
-            null;
-
-        if (typeof raw === "string") {
-            const v = raw.toLowerCase();
-            if (v === "list" || v === "array") return "list";
-            if (v === "string") return "string";
-        }
-
-        // fallback: если бэк не отдаёт тип — пытаемся угадать по значению
-        if (Array.isArray(value)) return "list";
-        return "string";
-    };
-
-    const handleEditClick = (keyRow, translationsMap) => {
-        const keyName = keyRow.key_name;
-        const current = translationsMap[keyName];
-        const keyType = normalizeKeyType(keyRow, current);
-
-        setEditKeyName(keyName);
+        setEditKey(keyRow);
+        setEditOpen(true);
         setEditDescription(keyRow.description || "");
-        setEditKeyType(keyType);
-
-        // Если есть тип ключа — он главный. Если значения нет/не совпадает — конвертируем аккуратно.
-        if (keyType === "list") {
-            setEditValueType("list");
-
-            if (Array.isArray(current)) {
-                const items = current.map((v) => (v != null ? String(v) : ""));
-                setEditListItems(items.length > 0 ? items : [""]);
-                setEditStringValue("");
-            } else if (typeof current === "string") {
-                // строка -> список (по строкам) как fallback
-                const items = current.length > 0 ? current.split(/\r?\n/) : [""];
-                setEditListItems(items.length > 0 ? items : [""]);
-                setEditStringValue("");
-            } else {
-                setEditListItems([""]);
-                setEditStringValue("");
-            }
-        } else {
-            setEditValueType("string");
-
-            if (typeof current === "string") {
-                setEditStringValue(current != null ? String(current) : "");
-                setEditListItems([""]);
-            } else if (Array.isArray(current)) {
-                // список -> строка (через \n) как fallback
-                setEditStringValue(current.map((v) => (v != null ? String(v) : "")).join("\n"));
-                setEditListItems([""]);
-            } else {
-                setEditStringValue("");
-                setEditListItems([""]);
-            }
-        }
-
         setEditError("");
-        setEditDialogOpen(true);
-    };
-
-    const handleEditClose = () => {
-        if (updateTranslationMutation.isPending) return;
-        setEditDialogOpen(false);
-        setEditError("");
-    };
-
-    const isTypeLocked = Boolean(editKeyType); // если ключ всегда имеет тип, блокируем переключатель
-    const handleEditValueTypeChange = (e) => {
-        if (isTypeLocked) return;
-
-        const newType = e.target.value;
-        if (newType === editValueType) return;
-
-        if (newType === "list") {
-            const items = editStringValue ? editStringValue.split(/\r?\n/) : [""];
-            setEditListItems(items);
+        if (isList) {
+            const items = Array.isArray(current)
+                ? current.map((v) => (v != null ? String(v) : ""))
+                : typeof current === "string" && current ? current.split(/\r?\n/) : [];
+            setEditLines(items.length ? items : [""]);
         } else {
-            const combined = editListItems.join("\n");
-            setEditStringValue(combined);
+            setEditString(
+                typeof current === "string" ? current : Array.isArray(current) ? current.join("\n") : ""
+            );
         }
-
-        setEditValueType(newType);
     };
 
-    const handleAddListItem = () => {
-        setEditListItems((prev) => [...prev, ""]);
-    };
+    const editMutation = useMutation({
+        mutationFn: (body) => axios.post(`/api/i18n/projects/${encodeURIComponent(slug)}/translations`, body),
+        onSuccess: (_res, body) => {
+            refresh();
+            setEditOpen(false);
+            toast(t("translation_saved", { key: body.key }));
+        },
+        onError: (e) => setEditError(errorMessage(e, t("update_translation_failed")))
+    });
 
-    const handleChangeListItem = (index, value) => {
-        setEditListItems((prev) =>
-            prev.map((item, i) => (i === index ? value : item))
-        );
-    };
-
-    const handleRemoveListItem = (index) => {
-        setEditListItems((prev) => prev.filter((_, i) => i !== index));
-    };
-
-    const handleEditSubmit = () => {
-        let value;
-
-        if (editValueType === "string") {
-            value = editStringValue; // сохраняем как есть (включая переносы)
-        } else {
-            // ВАЖНО: не trim-им сами значения (чтобы не убить переносы/формат),
-            // trim используем только чтобы отсечь полностью пустые элементы.
-            const items = editListItems
-                .map((s) => (s == null ? "" : String(s)))
-                .filter((s) => s.trim().length > 0);
-
-            if (items.length === 0) {
+    const submitEdit = () => {
+        let value = editString;
+        if (editIsList) {
+            value = editLines.filter((s) => s.trim().length > 0);
+            if (value.length === 0) {
                 setEditError(t("edit_list_empty"));
                 return;
             }
-
-            value = items;
         }
-
-        updateTranslationMutation.mutate({
-            key: editKeyName,
-            language: selectedLang,
+        editMutation.mutate({
+            key: editKey.key_name,
+            language: lang,
             value,
             description: editDescription
         });
     };
 
-    // -------------------- loading / error --------------------
-    if (isPending) {
-        return (
-            <Paper sx={{ ...pagePanelSx, display: "flex", flexDirection: "row", alignItems: "center" }}>
-                <CircularProgress size={20} />
-                <Typography>{t("loading_project")}</Typography>
-            </Paper>
-        );
-    }
-
-    if (isError) {
-        const axiosError = error;
-        const status = axiosError?.response?.status;
-
-        if (status === 404 || axiosError?.message?.includes?.("404")) {
-            navigate(`/404?path=/i18n/${slug}`);
-            return null;
+    // ---- delete (cannot be undone: removes the key with all its translations) ----
+    const [deleteKey, setDeleteKey] = useState(null);
+    const [deleteOpen, setDeleteOpen] = useState(false);
+    const deleteMutation = useMutation({
+        mutationFn: (keyRow) => axios.delete(`/api/i18n/projects/${encodeURIComponent(slug)}/keys/${keyRow.id}`),
+        onSuccess: (_res, keyRow) => {
+            refresh();
+            setDeleteOpen(false);
+            toast(t("key_deleted", { key: keyRow.key_name }));
+        },
+        onError: (e) => {
+            setDeleteOpen(false);
+            toast(errorMessage(e, t("delete_key_failed")), "error");
         }
+    });
 
+    const back = { to: "/i18n", label: t("title") };
+
+    if (langsQuery.isPending || isPending) return <LoadingState minHeight="50vh" />;
+
+    if (langsQuery.isError || isError) {
+        if (error?.response?.status === 404) {
+            return <Navigate to={`/404?path=/i18n/${slug}/manage`} replace />;
+        }
         return (
-            <Paper sx={pagePanelSx}>
-                <Typography color="error">
-                    {t("loading_error")}{" "}
-                    {axiosError?.message || String(axiosError)}
-                </Typography>
-            </Paper>
+            <>
+                <PageHeader title={slug} back={back} />
+                <ErrorState error={langsQuery.error || error} onRetry={langsQuery.isError ? langsQuery.refetch : refetch} />
+            </>
         );
     }
 
-    if (!data) {
-        return (
-            <Paper sx={pagePanelSx}>
-                <Typography color="error">
-                    {t("loading_error")}: {t("empty_response")}
-                </Typography>
-            </Paper>
-        );
-    }
+    const totalKeys = data.keys.length;
 
-    const { project, keys, translations } = data;
-
-    // -------------------- основной контент --------------------
     return (
         <>
-            <Paper
-                sx={pagePanelSx}
-            >
-                <Box
-                    sx={{
-                        display: "flex",
-                        flexWrap: "wrap",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: 2
-                    }}
-                >
-                    <Box>
-                        <Typography variant="caption" sx={{ ...monoLabelSx, color: "primary.main" }}>
-                            {t("breadcrumb_manage", { slug })}
-                        </Typography>
-                        <Typography variant="h2" sx={{ ...sectionTitleSx, mt: 0.8 }}>
-                            {project.name}
-                        </Typography>
-                        <Stack direction="row" spacing={1} alignItems="center">
-                            {isFetching && (
-                                <Typography variant="caption" sx={{ ...subtleTextSx }}>
-                                    {t("refreshing")}…
-                                </Typography>
-                            )}
-                        </Stack>
-                    </Box>
-
-                    <Stack direction="row" spacing={2} alignItems="center">
-                        <TextField
-                            size="small"
-                            select
-                            label={t("language")}
-                            value={selectedLang}
-                            onChange={(e) => setSelectedLang(e.target.value)}
-                            sx={{ minWidth: 120 }}
-                        >
-                            {supportedLangs.map((lng) => (
-                                <MenuItem key={lng} value={lng}>
-                                    {lng}
-                                </MenuItem>
-                            ))}
-                        </TextField>
-
-                        {canManage && (
-                            <Button size="small" variant="outlined" onClick={handleAddKeysClick}>
-                                {t("add_keys")}
-                            </Button>
-                        )}
+            <PageHeader
+                title={data.project.name}
+                back={back}
+                actions={
+                    <>
                         {canUpload && (
-                            <Button size="small" variant="contained" onClick={handleImportClick}>
+                            <Button
+                                variant="outlined"
+                                startIcon={<UploadFileOutlinedIcon />}
+                                onClick={() => {
+                                    setImportLang(lang);
+                                    setImportError("");
+                                    setImportOpen(true);
+                                }}
+                            >
                                 {t("import_yaml")}
                             </Button>
                         )}
-                    </Stack>
-                </Box>
-
-                <Divider />
-
-                <Box sx={{ flex: 1, maxHeight: "70vh", overflow: "auto" }}>
-                    {keys.length === 0 ? (
-                        <Typography variant="body2" sx={{ opacity: 0.8, mt: 1 }}>
-                            {t("no_keys_yet")}
-                        </Typography>
-                    ) : (
-                        <Stack spacing={1.5}>
-                            {keys.map((k) => {
-                                const value = translations[k.key_name];
-                                const keyType = normalizeKeyType(k, value);
-                                const isArray = Array.isArray(value);
-
-                                return (
-                                    <Box
-                                        key={k.id}
-                                        sx={{
-                                            display: "flex",
-                                            flexDirection: "column",
-                                            ...itemCardSx,
-                                            p: 1.5
-                                        }}
-                                    >
-                                        <Stack
-                                            direction="row"
-                                            spacing={1}
-                                            alignItems="center"
-                                            justifyContent="space-between"
-                                        >
-                                            <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
-                                                <Typography
-                                                    variant="subtitle2"
-                                                    sx={{
-                                                        fontFamily:
-                                                            "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
-                                                        overflow: "hidden",
-                                                        textOverflow: "ellipsis",
-                                                        whiteSpace: "nowrap"
-                                                    }}
-                                                >
-                                                    {k.key_name}
-                                                </Typography>
-
-                                                <Chip
-                                                    size="small"
-                                                    label={keyType === "list" ? t("type_list") : t("type_string")}
-                                                    variant="filled"
-                                                />
-
-                                                {value === undefined && (
-                                                    <Chip
-                                                        size="small"
-                                                        label={t("status_untranslated")}
-                                                        color="warning"
-                                                        variant="outlined"
-                                                    />
-                                                )}
-
-                                                {value !== undefined && (
-                                                    <Chip
-                                                        size="small"
-                                                        label={isArray ? t("type_list") : t("type_string")}
-                                                        sx={{ display: "none" }}
-                                                    />
-                                                )}
-                                            </Stack>
-
-                                            <Stack direction="row" spacing={0.75} alignItems="center">
-                                                {canManage && (
-                                                    <>
-                                                        <Button
-                                                            size="small"
-                                                            variant="outlined"
-                                                            sx={{ p: 1 }}
-                                                            onClick={() => handleEditClick(k, translations)}
-                                                        >
-                                                            {t("edit")}
-                                                        </Button>
-                                                        <Button
-                                                            size="small"
-                                                            variant="outlined"
-                                                            color="error"
-                                                            sx={{ p: 1 }}
-                                                            onClick={() => handleDeleteClick(k)}
-                                                        >
-                                                            {t("delete")}
-                                                        </Button>
-                                                    </>
-                                                )}
-                                            </Stack>
-                                        </Stack>
-
-                                        {k.description && (
-                                            <Typography variant="caption" sx={{ mt: 0.5, opacity: 0.7 }}>
-                                                {k.description}
-                                            </Typography>
-                                        )}
-
-                                        <Box sx={{ mt: 1 }}>
-                                            {value === undefined ? (
-                                                <Typography variant="body2" sx={{ opacity: 0.5 }}>
-                                                    {t("no_translation_for_lang")}
-                                                </Typography>
-                                            ) : Array.isArray(value) ? (
-                                                <Box
-                                                    component="ul"
-                                                    sx={{
-                                                        pl: 2,
-                                                        m: 0,
-                                                        "& li": {
-                                                            fontSize: "0.9rem",
-                                                            whiteSpace: "pre-wrap",
-                                                            wordBreak: "break-word"
-                                                        }
-                                                    }}
-                                                >
-                                                    {value.map((line, idx) => (
-                                                        <li key={idx}>{line}</li>
-                                                    ))}
-                                                </Box>
-                                            ) : (
-                                                <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-                                                    {value}
-                                                </Typography>
-                                            )}
-                                        </Box>
-                                    </Box>
-                                );
-                            })}
-                        </Stack>
-                    )}
-                </Box>
-
-                {permsError && (
-                    <Typography variant="caption" color="warning.main">
-                        {t("permissions_load_failed")}
-                    </Typography>
-                )}
-            </Paper>
-
-            {/* Диалог добавления ключей */}
-            <Dialog open={addDialogOpen} onClose={handleAddKeysClose} fullWidth>
-                <DialogTitle>{t("add_keys_title")}</DialogTitle>
-                <DialogContent sx={{ pt: 1 }}>
-                    <Typography variant="body2" sx={{ mb: 2 }}>
-                        {t("add_keys_description")}
-                    </Typography>
-
-                    <Stack spacing={2}>
-                        {addRows.map((row, index) => (
-                            <Box
-                                key={index}
-                                sx={{
-                                    ...itemCardSx,
-                                    p: 1.5
+                        {canManage && (
+                            <Button
+                                variant="contained"
+                                startIcon={<AddIcon />}
+                                onClick={() => {
+                                    setAddError("");
+                                    setAddOpen(true);
                                 }}
                             >
-                                <Stack
-                                    direction="row"
-                                    alignItems="center"
-                                    justifyContent="space-between"
-                                    sx={{ mb: 1 }}
-                                >
-                                    <Typography variant="subtitle2">
-                                        {t("key_block", { index: index + 1 })}
-                                    </Typography>
-                                    {addRows.length > 1 && (
-                                        <Button size="small" color="error" onClick={() => handleRemoveRow(index)}>
-                                            {t("remove")}
-                                        </Button>
-                                    )}
-                                </Stack>
-
-                                <Stack spacing={1.5}>
-                                    <TextField
-                                        label={t("key_name")}
-                                        fullWidth
-                                        value={row.key}
-                                        onChange={(e) => handleChangeRow(index, "key", e.target.value)}
-                                        placeholder={t("key_name_placeholder")}
-                                    />
-
-                                    <TextField
-                                        select
-                                        label={t("value_type")}
-                                        fullWidth
-                                        value={row.type || "string"}
-                                        onChange={(e) => handleChangeRow(index, "type", e.target.value)}
-                                    >
-                                        <MenuItem value="string">{t("value_type_string")}</MenuItem>
-                                        <MenuItem value="list">{t("value_type_list")}</MenuItem>
-                                    </TextField>
-
-                                    <TextField
-                                        label={t("description")}
-                                        fullWidth
-                                        multiline
-                                        minRows={2}
-                                        maxRows={2}
-                                        value={row.description}
-                                        onChange={(e) => handleChangeRow(index, "description", e.target.value)}
-                                        placeholder={t("description_placeholder")}
-                                    />
-                                </Stack>
-                            </Box>
-                        ))}
-
-                        <Box>
-                            <Button size="small" variant="text" onClick={handleAddRow}>
-                                {t("add_one_more_key")}
+                                {t("add_keys")}
                             </Button>
-                        </Box>
-
-                        {addError && (
-                            <Typography variant="caption" color="error" sx={{ mt: 1, display: "block" }}>
-                                {addError}
-                            </Typography>
                         )}
-                    </Stack>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={handleAddKeysClose}>{t("cancel")}</Button>
-                    <Button onClick={handleAddKeysSubmit} disabled={addKeysMutation.isPending}>
-                        {t("save")}
-                    </Button>
-                </DialogActions>
-            </Dialog>
+                    </>
+                }
+            />
 
-            {/* Диалог импорта YAML */}
-            <Dialog
-                open={importDialogOpen}
-                onClose={handleImportClose}
-                fullWidth
+            <Stack direction={{ xs: "column", sm: "row" }} gap={1.5}>
+                <LanguageSelect
+                    label={t("language")}
+                    languages={languages}
+                    value={lang}
+                    onChange={setLang}
+                    sx={{ width: { sm: 240 } }}
+                />
+                {totalKeys > 0 && (
+                    <TextField
+                        size="small"
+                        placeholder={t("search_keys")}
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        onKeyDown={(e) => e.key === "Escape" && setSearch("")}
+                        sx={{ flex: 1, maxWidth: { sm: 360 } }}
+                        InputProps={{
+                            startAdornment: (
+                                <InputAdornment position="start">
+                                    <SearchIcon fontSize="small" />
+                                </InputAdornment>
+                            ),
+                            endAdornment: search && (
+                                <InputAdornment position="end">
+                                    <IconButton size="small" onClick={() => setSearch("")} aria-label={t("clear_search")}>
+                                        <CloseIcon fontSize="small" />
+                                    </IconButton>
+                                </InputAdornment>
+                            )
+                        }}
+                    />
+                )}
+            </Stack>
+
+            {totalKeys === 0 ? (
+                <EmptyState
+                    title={t("no_keys_yet")}
+                    action={
+                        canManage && (
+                            <Button variant="contained" startIcon={<AddIcon />} onClick={() => setAddOpen(true)}>
+                                {t("add_keys")}
+                            </Button>
+                        )
+                    }
+                />
+            ) : keys.length === 0 ? (
+                <EmptyState title={t("nothing_found")} />
+            ) : (
+                <Paper sx={{ overflow: "hidden" }}>
+                    {keys.map((k, index) => {
+                        const value = data.translations[k.key_name];
+                        const isList = keyTypeOf(k, value) === "list";
+
+                        return (
+                            <Box
+                                key={k.id}
+                                sx={{
+                                    display: "flex",
+                                    gap: 2,
+                                    px: { xs: 2, md: 2.5 },
+                                    py: 2,
+                                    borderTop: index === 0 ? "none" : "1px solid",
+                                    borderColor: "divider",
+                                    transition: "background-color .15s",
+                                    "&:hover": { bgcolor: "action.hover" }
+                                }}
+                            >
+                                <Box sx={{ flex: 1, minWidth: 0 }}>
+                                    <Stack direction="row" alignItems="center" gap={1} flexWrap="wrap">
+                                        <Typography variant="subtitle2" sx={{ ...monoSx, fontSize: "0.85rem", wordBreak: "break-all" }}>
+                                            {k.key_name}
+                                        </Typography>
+                                        {isList && <Chip size="small" label={t("type_list")} />}
+                                        {value === undefined && (
+                                            <Chip size="small" label={t("status_untranslated")} color="warning" variant="outlined" />
+                                        )}
+                                    </Stack>
+                                    {k.description && (
+                                        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
+                                            {k.description}
+                                        </Typography>
+                                    )}
+                                    {value !== undefined && (
+                                        <Box sx={{ mt: 1 }}>
+                                            <ValuePreview value={value} />
+                                        </Box>
+                                    )}
+                                </Box>
+
+                                {canManage && (
+                                    <Stack direction="row" alignItems="flex-start" gap={0.5} sx={{ flexShrink: 0 }}>
+                                        <Tooltip title={t("edit")}>
+                                            <IconButton onClick={() => openEdit(k)} aria-label={t("edit")}>
+                                                <EditOutlinedIcon fontSize="small" />
+                                            </IconButton>
+                                        </Tooltip>
+                                        <Tooltip title={t("delete")}>
+                                            <IconButton
+                                                onClick={() => {
+                                                    setDeleteKey(k);
+                                                    setDeleteOpen(true);
+                                                }}
+                                                aria-label={t("delete")}
+                                                sx={{ "&:hover": { color: "error.main" } }}
+                                            >
+                                                <DeleteOutlineIcon fontSize="small" />
+                                            </IconButton>
+                                        </Tooltip>
+                                    </Stack>
+                                )}
+                            </Box>
+                        );
+                    })}
+                </Paper>
+            )}
+
+            <FormDialog
+                open={addOpen}
+                title={t("add_keys")}
+                onClose={() => setAddOpen(false)}
+                onSubmit={submitAddKeys}
+                submitLabel={t("add")}
+                pending={addKeysMutation.isPending}
                 maxWidth="md"
             >
-                <DialogTitle>{t("import_yaml_title")}</DialogTitle>
-                <DialogContent sx={{ pt: 1 }}>
-                    <Stack direction="row" spacing={2} sx={{ mb: 2, mt: 1 }}>
+                {addRows.map((row, index) => (
+                    <Stack key={index} direction={{ xs: "column", md: "row" }} gap={1.5} alignItems={{ md: "flex-start" }}>
                         <TextField
+                            autoFocus={index === addRows.length - 1}
                             size="small"
-                            select
-                            label={t("import_yaml_language_label")}
-                            value={importLang}
-                            onChange={(e) => setImportLang(e.target.value)}
-                            sx={{ minWidth: 160 }}
-                        >
-                            {supportedLangs.map((lng) => (
-                                <MenuItem key={lng} value={lng}>
-                                    {lng}
-                                </MenuItem>
-                            ))}
-                        </TextField>
-                    </Stack>
-
-                    <TextField
-                        multiline
-                        minRows={10}
-                        fullWidth
-                        value={importYaml}
-                        onChange={(e) => setImportYaml(e.target.value)}
-                        placeholder={t("import_yaml_placeholder")}
-                    />
-
-                    {importError && (
-                        <Typography variant="caption" color="error" sx={{ mt: 1, display: "block" }}>
-                            {importError}
-                        </Typography>
-                    )}
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={handleImportClose}>{t("cancel")}</Button>
-                    <Button onClick={handleImportSubmit} disabled={importYamlMutation.isPending}>
-                        {t("import")}
-                    </Button>
-                </DialogActions>
-            </Dialog>
-
-            {/* Диалог редактирования перевода + описания ключа */}
-            <Dialog
-                open={editDialogOpen}
-                onClose={handleEditClose}
-                fullWidth
-                maxWidth="md"
-            >
-                <DialogTitle>{t("edit_translation_title")}</DialogTitle>
-                <DialogContent sx={{ pt: 1 }}>
-                    <Typography variant="body2" sx={{ mb: 1 }}>
-                        {t("edit_translation_description", {
-                            key: editKeyName,
-                            lang: selectedLang
-                        })}
-                    </Typography>
-
-                    <TextField
-                        label={t("key_name")}
-                        fullWidth
-                        value={editKeyName}
-                        InputProps={{ readOnly: true }}
-                        sx={{ mb: 2 }}
-                    />
-
-                    <TextField
-                        label={t("description")}
-                        fullWidth
-                        multiline
-                        minRows={2}
-                        maxRows={2}
-                        value={editDescription}
-                        onChange={(e) => setEditDescription(e.target.value)}
-                        placeholder={t("description_placeholder")}
-                        sx={{ mb: 2 }}
-                    />
-
-                    <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
+                            label={t("key_name")}
+                            placeholder="namespace.section.key"
+                            value={row.key}
+                            onChange={(e) => changeRow(index, "key", e.target.value)}
+                            InputProps={{ sx: monoSx }}
+                            sx={{ flex: 2 }}
+                        />
                         <TextField
                             select
                             size="small"
                             label={t("value_type")}
-                            value={editValueType}
-                            onChange={handleEditValueTypeChange}
-                            sx={{ minWidth: 160 }}
-                            disabled={isTypeLocked}
-                            helperText={isTypeLocked ? t("value_type_locked_hint") : ""}
+                            value={row.type}
+                            onChange={(e) => changeRow(index, "type", e.target.value)}
+                            sx={{ width: { md: 150 } }}
                         >
                             <MenuItem value="string">{t("value_type_string")}</MenuItem>
                             <MenuItem value="list">{t("value_type_list")}</MenuItem>
                         </TextField>
-                    </Stack>
-
-                    {editValueType === "string" ? (
                         <TextField
-                            label={t("translation_value")}
-                            multiline
-                            minRows={1}
-                            fullWidth
-                            value={editStringValue}
-                            onChange={(e) => setEditStringValue(e.target.value)}
-                            placeholder={t("edit_translation_placeholder")}
+                            size="small"
+                            label={t("description")}
+                            value={row.description}
+                            onChange={(e) => changeRow(index, "description", e.target.value)}
+                            sx={{ flex: 3 }}
                         />
-                    ) : (
-                        <Stack spacing={1.5}>
-                            {editListItems.map((item, index) => (
-                                <Stack key={index} direction="row" spacing={1} alignItems="flex-start">
-                                    <TextField
-                                        label={t("list_item_label", { index: index + 1 })}
-                                        fullWidth
-                                        multiline
-                                        minRows={1}
-                                        maxRows={8}
-                                        value={item}
-                                        onChange={(e) => handleChangeListItem(index, e.target.value)}
-                                        placeholder={t("edit_translation_placeholder")}
-                                    />
-                                    {editListItems.length > 1 && (
-                                        <Button
-                                            size="small"
-                                            color="error"
-                                            onClick={() => handleRemoveListItem(index)}
-                                            sx={{ mt: 1 }}
-                                        >
-                                            {t("remove")}
-                                        </Button>
-                                    )}
-                                </Stack>
-                            ))}
-                            <Box>
-                                <Button size="small" variant="text" onClick={handleAddListItem}>
-                                    {t("add_list_item")}
-                                </Button>
-                            </Box>
-                        </Stack>
-                    )}
-
-                    <Typography variant="caption" sx={{ mt: 1, display: "block", opacity: 0.8 }}>
-                        {t("edit_translation_hint")}
-                    </Typography>
-
-                    {editError && (
-                        <Typography variant="caption" color="error" sx={{ mt: 1, display: "block" }}>
-                            {editError}
-                        </Typography>
-                    )}
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={handleEditClose}>{t("cancel")}</Button>
-                    <Button onClick={handleEditSubmit} disabled={updateTranslationMutation.isPending}>
-                        {t("save")}
+                        {addRows.length > 1 && (
+                            <Tooltip title={t("remove")}>
+                                <IconButton
+                                    aria-label={t("remove")}
+                                    onClick={() => setAddRows((prev) => prev.filter((_, i) => i !== index))}
+                                    sx={{ alignSelf: { xs: "flex-end", md: "center" } }}
+                                >
+                                    <CloseIcon fontSize="small" />
+                                </IconButton>
+                            </Tooltip>
+                        )}
+                    </Stack>
+                ))}
+                <Box>
+                    <Button startIcon={<AddIcon />} onClick={() => setAddRows((prev) => [...prev, EMPTY_ROW])}>
+                        {t("add_one_more_key")}
                     </Button>
-                </DialogActions>
-            </Dialog>
+                </Box>
+                {addError && (
+                    <Typography variant="body2" color="error">
+                        {addError}
+                    </Typography>
+                )}
+            </FormDialog>
+
+            <FormDialog
+                open={importOpen}
+                title={t("import_yaml")}
+                onClose={() => setImportOpen(false)}
+                onSubmit={submitImport}
+                submitLabel={t("import")}
+                pending={importMutation.isPending}
+                maxWidth="md"
+            >
+                <Stack direction="row" gap={1.5} alignItems="center" flexWrap="wrap">
+                    <LanguageSelect
+                        label={t("import_yaml_language_label")}
+                        languages={languages}
+                        value={importLang}
+                        onChange={setImportLang}
+                        sx={{ width: 240 }}
+                    />
+                    <Button component="label" variant="outlined" startIcon={<UploadFileOutlinedIcon />}>
+                        {t("choose_file")}
+                        <input
+                            hidden
+                            type="file"
+                            accept=".yml,.yaml,text/yaml"
+                            onChange={(e) => {
+                                loadYamlFile(e.target.files?.[0]);
+                                e.target.value = "";
+                            }}
+                        />
+                    </Button>
+                </Stack>
+                <TextField
+                    autoFocus
+                    multiline
+                    minRows={10}
+                    maxRows={20}
+                    value={importYaml}
+                    onChange={(e) => {
+                        setImportYaml(e.target.value);
+                        setImportError("");
+                    }}
+                    placeholder={t("import_yaml_placeholder")}
+                    inputProps={{ "aria-label": "YAML", spellCheck: false }}
+                    InputProps={{ sx: monoSx }}
+                    error={Boolean(importError)}
+                    helperText={importError || " "}
+                />
+            </FormDialog>
+
+            <FormDialog
+                open={editOpen}
+                title={
+                    <Box component="span" sx={{ ...monoSx, fontSize: "1rem", wordBreak: "break-all" }}>
+                        {editKey?.key_name}
+                    </Box>
+                }
+                onClose={() => setEditOpen(false)}
+                onSubmit={submitEdit}
+                pending={editMutation.isPending}
+                maxWidth="md"
+            >
+                <TextField
+                    label={t("description")}
+                    value={editDescription}
+                    onChange={(e) => setEditDescription(e.target.value)}
+                    multiline
+                    maxRows={3}
+                />
+                {editIsList ? (
+                    <Stack gap={1}>
+                        {editLines.map((item, index) => (
+                            <Stack key={index} direction="row" gap={0.5} alignItems="flex-start">
+                                <TextField
+                                    autoFocus={index === 0}
+                                    fullWidth
+                                    multiline
+                                    maxRows={8}
+                                    size="small"
+                                    label={t("translation_line", { lang: languageName(lang), index: index + 1 })}
+                                    value={item}
+                                    onChange={(e) => {
+                                        setEditError("");
+                                        setEditLines((prev) => prev.map((v, i) => (i === index ? e.target.value : v)));
+                                    }}
+                                />
+                                {editLines.length > 1 && (
+                                    <Tooltip title={t("remove_line")}>
+                                        <IconButton
+                                            aria-label={t("remove_line")}
+                                            onClick={() => setEditLines((prev) => prev.filter((_, i) => i !== index))}
+                                        >
+                                            <CloseIcon fontSize="small" />
+                                        </IconButton>
+                                    </Tooltip>
+                                )}
+                            </Stack>
+                        ))}
+                        <Box>
+                            <Button startIcon={<AddIcon />} onClick={() => setEditLines((prev) => [...prev, ""])}>
+                                {t("add_line")}
+                            </Button>
+                        </Box>
+                    </Stack>
+                ) : (
+                    <TextField
+                        autoFocus
+                        multiline
+                        minRows={3}
+                        label={t("translation_in", { lang: languageName(lang) })}
+                        value={editString}
+                        onChange={(e) => setEditString(e.target.value)}
+                    />
+                )}
+                {editError && (
+                    <Typography variant="body2" color="error">
+                        {editError}
+                    </Typography>
+                )}
+            </FormDialog>
+
+            <ConfirmDialog
+                open={deleteOpen}
+                title={t("delete_key_confirm", { key: deleteKey?.key_name })}
+                confirmLabel={t("delete")}
+                pending={deleteMutation.isPending}
+                onConfirm={() => deleteMutation.mutate(deleteKey)}
+                onClose={() => setDeleteOpen(false)}
+            />
         </>
     );
 }

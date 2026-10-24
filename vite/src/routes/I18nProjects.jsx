@@ -1,496 +1,284 @@
+import { useState } from "react";
 import {
     Box,
     Button,
-    Paper,
-    Stack,
-    Typography,
-    Divider,
-    Chip,
     LinearProgress,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    TextField
+    Stack,
+    TextField,
+    Typography
 } from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
+import LinkCard from "../components/LinkCard.jsx";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link as RouterLink } from "react-router-dom";
 import axios from "axios";
-import { useState } from "react";
-import { itemCardSx, monoLabelSx, pagePanelSx, subtleTextSx } from "../theme/neoStyles.js";
+import LanguageSelect from "../components/LanguageSelect.jsx";
+import { EmptyState, ErrorState, LoadingState, PageHeader } from "../components/ui.jsx";
+import { FormDialog } from "../components/dialogs.jsx";
+import { usePermissions } from "../lib/auth.js";
+import { useToast } from "../lib/toast.js";
+import { cardActionsSx, errorMessage, monoSx } from "../lib/utils.js";
+import {
+    getSavedTargetLang,
+    pickLanguage,
+    saveTargetLang,
+    useI18nLanguages,
+    useProjects
+} from "../lib/queries.js";
 
-function normalizeLangCode(code) {
-    return String(code || "")
-        .trim()
-        .toLowerCase()
-        .replace("-", "_");
-}
+function I18nProjectCard({ project, lang, canManage }) {
+    const { t } = useTranslation("i18n");
+    const percent = project.progressPercent ?? 0;
+    const query = `?lang=${encodeURIComponent(lang)}`;
 
-function pickProgressLang(available, preferred) {
-    const safe = Array.isArray(available) ? available : [];
-    if (safe.length === 0) {
-        return "en_us";
-    }
+    return (
+        <LinkCard to={`${project.slug}${query}`} title={project.name}>
+            {project.description && (
+                <Typography color="text.secondary">{project.description}</Typography>
+            )}
 
-    const exact = safe.find((code) => normalizeLangCode(code) === normalizeLangCode(preferred));
-    if (exact) {
-        return exact;
-    }
+            <Box>
+                <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.75 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        {t("percent_translated", { percent })}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={monoSx}>
+                        {project.translatedCount ?? 0}/{project.totalCount ?? 0}
+                    </Typography>
+                </Stack>
+                <LinearProgress
+                    variant="determinate"
+                    value={percent}
+                    color={percent === 100 ? "success" : "primary"}
+                    sx={{ height: 6 }}
+                />
+            </Box>
 
-    const enUs = safe.find((code) => normalizeLangCode(code) === "en_us");
-    if (enUs) {
-        return enUs;
-    }
-
-    const en = safe.find((code) => normalizeLangCode(code) === "en");
-    if (en) {
-        return en;
-    }
-
-    return safe[0];
+            {canManage && (
+                <Box sx={cardActionsSx}>
+                    <Button
+                        component={RouterLink}
+                        to={`${project.slug}/manage${query}`}
+                        size="small"
+                        variant="outlined"
+                    >
+                        {t("manage")}
+                    </Button>
+                </Box>
+            )}
+        </LinkCard>
+    );
 }
 
 export default function I18nProjects() {
-    const { t, i18n } = useTranslation("i18n");
+    const { t } = useTranslation("i18n");
+    const toast = useToast();
     const queryClient = useQueryClient();
+    const { canManage, canModerate } = usePermissions();
 
-    const { data: permissions } = useQuery({
-        queryKey: ["permissions"],
+    const { data: languages } = useI18nLanguages();
+    const { data: siteProjects = [] } = useProjects();
+    const [chosenLang, setChosenLang] = useState(getSavedTargetLang);
+    const lang = pickLanguage(languages, chosenLang);
+
+    const progressQuery = useQuery({
+        queryKey: ["i18n-progress", lang],
+        enabled: Boolean(languages),
         queryFn: async () => {
-            const res = await axios.get("/api/permissions");
-            return res.data || [];
+            const res = await axios.get("/api/i18n/projects/progress", { params: { lang } });
+            return Array.isArray(res.data) ? res.data : [];
         },
-        retry: false
+        placeholderData: (prev) => prev
     });
 
-    const canManage =
-        Array.isArray(permissions) && permissions.includes("i18n.manage");
-    const canModerate =
-        Array.isArray(permissions) && permissions.includes("i18n.moderate");
-
-    const {
-        data: projects,
-        isPending,
-        isError,
-        error,
-        isFetching
-    } = useQuery({
-        queryKey: ["i18n-projects", i18n.language],
-        queryFn: async () => {
-            const [projectsRes, langsRes] = await Promise.all([
-                axios.get("/api/projects", {
-                    params: { lang: i18n.language }
-                }),
-                axios.get("/api/i18n/languages")
-            ]);
-
-            const rawProjects = Array.isArray(projectsRes.data)
-                ? projectsRes.data
-                : [];
-
-            const languages = Array.isArray(langsRes.data)
-                ? langsRes.data
-                      .map((it) => (typeof it === "string" ? it : it?.code))
-                      .filter(Boolean)
-                : [];
-
-            const progressLang = pickProgressLang(languages, i18n.language);
-            const progressRes = await axios.get("/api/i18n/projects/progress", {
-                params: { lang: progressLang }
-            });
-
-            const i18nProjects = Array.isArray(progressRes.data)
-                ? progressRes.data
-                : [];
-
-            const projectsMap = {};
-            for (const p of rawProjects) {
-                if (!p) continue;
-
-                if (p.id != null) {
-                    projectsMap[String(p.id)] = p;
-                }
-                if (typeof p.slug === "string" && p.slug.length > 0) {
-                    projectsMap[p.slug] = p;
-                }
-            }
-
-            return i18nProjects.map((project) => {
-                const extra = projectsMap[project.slug] || projectsMap[String(project.id)] || {};
-                return { ...project, ...extra, progressLang };
-            });
-        }
+    const projects = (progressQuery.data || []).map((project) => {
+        const extra = siteProjects.find((p) => p.id === project.slug || String(p.id) === String(project.id));
+        return { ...project, description: extra?.description };
     });
 
+    const handleLangChange = (code) => {
+        setChosenLang(code);
+        saveTargetLang(code);
+    };
+
+    // ---- add language ----
     const [langDialogOpen, setLangDialogOpen] = useState(false);
     const [langCode, setLangCode] = useState("");
     const [langError, setLangError] = useState("");
 
     const addLanguageMutation = useMutation({
-        mutationFn: async ({ code }) => {
-            return axios.post("/api/i18n/languages", { code });
-        },
-        onSuccess: () => {
+        mutationFn: (code) => axios.post("/api/i18n/languages", { code }),
+        onSuccess: (_res, code) => {
             setLangDialogOpen(false);
             setLangCode("");
-            setLangError("");
-            // на всякий случай инвалидируем
-            queryClient.invalidateQueries({ queryKey: ["i18n-projects"] });
+            queryClient.invalidateQueries({ queryKey: ["i18n-languages"] });
+            toast(t("language_added", { code }));
         },
-        onError: (e) => {
-            setLangError(
-                (e && e.response && e.response.data && e.response.data.error) ||
-                    e.message ||
-                    t("generic_error")
-            );
-        }
+        onError: (e) => setLangError(errorMessage(e, t("generic_error")))
     });
 
-    const handleOpenAddLanguage = () => {
-        setLangDialogOpen(true);
-        setLangError("");
-    };
-
-    const handleCloseAddLanguage = () => {
-        if (addLanguageMutation.isPending) return;
-        setLangDialogOpen(false);
-        setLangError("");
-    };
-
-    const handleSubmitAddLanguage = () => {
+    const submitLanguage = () => {
         const code = langCode.trim();
         if (!code) {
             setLangError(t("add_lang_empty"));
             return;
         }
-        addLanguageMutation.mutate({ code });
+        addLanguageMutation.mutate(code);
     };
 
+    // ---- add project ----
     const [projectDialogOpen, setProjectDialogOpen] = useState(false);
     const [projectSlug, setProjectSlug] = useState("");
     const [projectName, setProjectName] = useState("");
-    const [projectError, setProjectError] = useState("");
+    const [projectErrors, setProjectErrors] = useState({});
 
     const addProjectMutation = useMutation({
-        mutationFn: async ({ slug, name }) => {
-            return axios.post("/api/i18n/projects", { slug, name });
-        },
-        onSuccess: () => {
+        mutationFn: ({ slug, name }) => axios.post("/api/i18n/projects", { slug, name }),
+        onSuccess: (_res, { name }) => {
             setProjectDialogOpen(false);
             setProjectSlug("");
             setProjectName("");
-            setProjectError("");
-            queryClient.invalidateQueries({ queryKey: ["i18n-projects"] });
+            queryClient.invalidateQueries({ queryKey: ["i18n-progress"] });
+            toast(t("project_added", { name }));
         },
-        onError: (e) => {
-            setProjectError(
-                (e && e.response && e.response.data && e.response.data.error) ||
-                    e.message ||
-                    t("generic_error")
-            );
-        }
+        onError: (e) => setProjectErrors({ form: errorMessage(e, t("generic_error")) })
     });
 
-    const handleOpenAddProject = () => {
-        setProjectDialogOpen(true);
-        setProjectError("");
-    };
-
-    const handleCloseAddProject = () => {
-        if (addProjectMutation.isPending) return;
-        setProjectDialogOpen(false);
-        setProjectError("");
-    };
-
-    const handleSubmitAddProject = () => {
+    const submitProject = () => {
         const slug = projectSlug.trim();
         const name = projectName.trim();
-
-        if (!slug) {
-            setProjectError(t("add_project_slug_required"));
-            return;
+        const errors = {};
+        if (!slug) errors.slug = t("add_project_slug_required");
+        if (!name) errors.name = t("add_project_name_required");
+        setProjectErrors(errors);
+        if (Object.keys(errors).length === 0) {
+            addProjectMutation.mutate({ slug, name });
         }
-        if (!name) {
-            setProjectError(t("add_project_name_required"));
-            return;
-        }
-
-        addProjectMutation.mutate({ slug, name });
     };
 
-
-    if (isPending) {
-        return (
-            <Paper sx={pagePanelSx}>
-                <Typography>{t("loading_projects")}</Typography>
-            </Paper>
-        );
-    }
-
-    if (isError) {
-        return (
-            <Paper sx={pagePanelSx}>
-                <Typography color="error">
-                    {t("loading_error")}{" "}
-                    {error?.message || String(error)}
-                </Typography>
-            </Paper>
-        );
-    }
-
-    const list = Array.isArray(projects) ? projects : [];
+    const actions = (
+        <>
+            {canModerate && (
+                <Button component={RouterLink} to="moderation" variant="outlined">
+                    {t("moderation")}
+                </Button>
+            )}
+            {canManage && (
+                <>
+                    <Button
+                        variant="outlined"
+                        onClick={() => {
+                            setLangError("");
+                            setLangDialogOpen(true);
+                        }}
+                    >
+                        {t("add_language")}
+                    </Button>
+                    <Button
+                        variant="contained"
+                        startIcon={<AddIcon />}
+                        onClick={() => {
+                            setProjectErrors({});
+                            setProjectDialogOpen(true);
+                        }}
+                    >
+                        {t("add_project")}
+                    </Button>
+                </>
+            )}
+        </>
+    );
 
     return (
         <>
-            <Paper
-                sx={pagePanelSx}
-            >
-                <Box>
-                    <Typography variant="caption" sx={{ ...monoLabelSx, color: "primary.main" }}>
-                        {t("breadcrumb_hub")}
-                    </Typography>
-                    <Typography variant="h1" sx={{ mt: 1 }}>
-                        {t("title")}
-                    </Typography>
-                    <Typography variant="body1" sx={{ ...subtleTextSx, mt: 0.8, maxWidth: 860 }}>
-                        {t("hub_intro")}
-                    </Typography>
-                </Box>
-
-                <Stack
-                    direction="row"
-                    alignItems="center"
-                    justifyContent="space-between"
-                    flexWrap="wrap"
-                    gap={1.5}
-                >
-                    <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ rowGap: 1 }}>
-                        <Chip
-                            size="small"
-                            label={t("projects_count", { count: list.length })}
-                            variant="outlined"
-                        />
-                    </Stack>
-
-                    <Stack direction="row" spacing={2} alignItems="center">
-                        {isFetching && (
-                            <Typography
-                                variant="body2"
-                                color="text.secondary"
-                                sx={{ fontStyle: "italic" }}
-                            >
-                                {t("updating_projects")}
-                            </Typography>
-                        )}
-
-                        {canManage && (
-                            <>
-                                <Button
-                                    variant="outlined"
-                                    size="small"
-                                    onClick={handleOpenAddLanguage}
-                                >
-                                    {t("add_language")}
-                                </Button>
-                                <Button
-                                    variant="contained"
-                                    size="small"
-                                    onClick={handleOpenAddProject}
-                                >
-                                    {t("add_project")}
-                                </Button>
-                            </>
-                        )}
-                    </Stack>
-                </Stack>
-
-                <Divider />
-
-                {list.length === 0 ? (
-                    <Typography textAlign="center">
-                        {t("no_projects")}
-                    </Typography>
-                ) : (
-                    <Box
-                        sx={{
-                            display: "grid",
-                            gridTemplateColumns: { xs: "1fr", md: "repeat(2, minmax(0, 1fr))" },
-                            gap: 1.8
-                        }}
-                    >
-                    {list.map((project) => (
-                        <Box
-                            key={project.id}
-                            sx={itemCardSx}
-                        >
-                            <Typography
-                                variant="h5"
-                                sx={{ mb: 1 }}
-                                style={{
-                                    color: "inherit",
-                                    textDecoration: "none"
-                                }}
-                            >
-                                {project.name}
-                            </Typography>
-
-                            {project.description && (
-                                <Typography
-                                    variant="body2"
-                                    sx={{ ...subtleTextSx, mb: 2 }}
-                                >
-                                    {project.description}
-                                </Typography>
-                            )}
-
-                            <Box sx={{ mb: 1.4 }}>
-                                <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.7 }}>
-                                    <Typography variant="caption" color="text.secondary">
-                                        {t("translation_progress", {
-                                            lang: project.progressLang || "en_us"
-                                        })}
-                                    </Typography>
-                                    <Typography variant="caption" sx={{ ...monoLabelSx, color: "primary.main" }}>
-                                        {project.translatedCount ?? 0}/{project.totalCount ?? 0}
-                                    </Typography>
-                                </Stack>
-                                <LinearProgress
-                                    variant="determinate"
-                                    value={project.progressPercent ?? 0}
-                                    sx={{
-                                        height: 8,
-                                        borderRadius: 999,
-                                        bgcolor: "rgba(64,72,93,0.45)"
-                                    }}
-                                />
-                            </Box>
-
-                            <Box
-                                sx={{
-                                    display: "flex",
-                                    gap: 1,
-                                    flexWrap: "wrap",
-                                    rowGap: 1
-                                }}
-                            >
-                                <Button
-                                    variant="contained"
-                                    size="small"
-                                    component={RouterLink}
-                                    to={`${project.slug}?lang=${encodeURIComponent(project.progressLang || "en_us")}`}
-                                >
-                                    {t("open_project")}
-                                </Button>
-                                {
-                                    canManage &&
-                                    <Button
-                                        variant="outlined"
-                                        size="small"
-                                        component={RouterLink}
-                                        to={`${project.slug}/manage?lang=${encodeURIComponent(project.progressLang || "en_us")}`}
-                                    >
-                                        {t("manage")}
-                                    </Button>
-                                }
-                                {
-                                    canModerate &&
-                                    <Button
-                                        variant="outlined"
-                                        size="small"
-                                        component={RouterLink}
-                                        to={`${project.slug}/moderate`}
-                                    >
-                                        {t("moderate")}
-                                    </Button>
-                                }
-                            </Box>
-                        </Box>
-                    ))}
-                    </Box>
-                )}
-            </Paper>
-
-            {/* Диалог добавления языка */}
-            <Dialog open={langDialogOpen} onClose={handleCloseAddLanguage} fullWidth>
-                <DialogTitle>{t("add_language_title")}</DialogTitle>
-                <DialogContent sx={{ pt: 1 }}>
-                    <TextField
-                        label={t("language_code")}
-                        fullWidth
-                        value={langCode}
-                        onChange={(e) => setLangCode(e.target.value)}
-                        sx={{ mt: 1 }}
+            <PageHeader title={t("title")} actions={canManage || canModerate ? actions : null}>
+                {languages?.length > 0 && (
+                    <LanguageSelect
+                        label={t("your_language")}
+                        languages={languages}
+                        value={lang}
+                        onChange={handleLangChange}
+                        sx={{ width: 240, mt: 1 }}
                     />
-                    {langError && (
-                        <Typography
-                            variant="caption"
-                            color="error"
-                            sx={{ mt: 1, display: "block" }}
-                        >
-                            {langError}
-                        </Typography>
-                    )}
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={handleCloseAddLanguage}>
-                        {t("cancel")}
-                    </Button>
-                    <Button
-                        onClick={handleSubmitAddLanguage}
-                        disabled={addLanguageMutation.isPending}
-                    >
-                        {t("save")}
-                    </Button>
-                </DialogActions>
-            </Dialog>
+                )}
+            </PageHeader>
 
-            {/* Диалог добавления проекта */}
-            <Dialog
-                open={projectDialogOpen}
-                onClose={handleCloseAddProject}
-                fullWidth
+            {progressQuery.isPending ? (
+                <LoadingState />
+            ) : progressQuery.isError ? (
+                <ErrorState error={progressQuery.error} onRetry={progressQuery.refetch} />
+            ) : projects.length === 0 ? (
+                <EmptyState title={t("no_projects")} />
+            ) : (
+                <Box
+                    sx={{
+                        display: "grid",
+                        gridTemplateColumns: { xs: "1fr", md: "repeat(2, minmax(0, 1fr))" },
+                        gap: 2
+                    }}
+                >
+                    {projects.map((project) => (
+                        <I18nProjectCard
+                            key={project.id}
+                            project={project}
+                            lang={lang}
+                            canManage={canManage}
+                        />
+                    ))}
+                </Box>
+            )}
+
+            <FormDialog
+                open={langDialogOpen}
+                title={t("add_language")}
+                onClose={() => setLangDialogOpen(false)}
+                onSubmit={submitLanguage}
+                submitLabel={t("add")}
+                pending={addLanguageMutation.isPending}
             >
-                <DialogTitle>{t("add_project_title")}</DialogTitle>
-                <DialogContent sx={{ pt: 1 }}>
-                    <Stack spacing={2} sx={{ mt: 1 }}>
-                        <TextField
-                            label={t("project_slug")}
-                            fullWidth
-                            value={projectSlug}
-                            onChange={(e) => setProjectSlug(e.target.value)}
-                        />
-                        <TextField
-                            label={t("project_name")}
-                            fullWidth
-                            value={projectName}
-                            onChange={(e) => setProjectName(e.target.value)}
-                            placeholder={t("project_name_placeholder")}
-                        />
-                    </Stack>
+                <TextField
+                    autoFocus
+                    label={t("language_code")}
+                    placeholder="de_de"
+                    value={langCode}
+                    onChange={(e) => {
+                        setLangCode(e.target.value);
+                        setLangError("");
+                    }}
+                    error={Boolean(langError)}
+                    helperText={langError || " "}
+                    InputProps={{ sx: monoSx }}
+                />
+            </FormDialog>
 
-                    {projectError && (
-                        <Typography
-                            variant="caption"
-                            color="error"
-                            sx={{ mt: 1, display: "block" }}
-                        >
-                            {projectError}
-                        </Typography>
-                    )}
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={handleCloseAddProject}>
-                        {t("cancel")}
-                    </Button>
-                    <Button
-                        onClick={handleSubmitAddProject}
-                        disabled={addProjectMutation.isPending}
-                    >
-                        {t("save")}
-                    </Button>
-                </DialogActions>
-            </Dialog>
+            <FormDialog
+                open={projectDialogOpen}
+                title={t("add_project")}
+                onClose={() => setProjectDialogOpen(false)}
+                onSubmit={submitProject}
+                submitLabel={t("add")}
+                pending={addProjectMutation.isPending}
+            >
+                <TextField
+                    autoFocus
+                    label={t("project_slug")}
+                    placeholder="my-plugin"
+                    value={projectSlug}
+                    onChange={(e) => setProjectSlug(e.target.value)}
+                    error={Boolean(projectErrors.slug)}
+                    helperText={projectErrors.slug || " "}
+                    InputProps={{ sx: monoSx }}
+                />
+                <TextField
+                    label={t("project_name")}
+                    placeholder="My Plugin"
+                    value={projectName}
+                    onChange={(e) => setProjectName(e.target.value)}
+                    error={Boolean(projectErrors.name || projectErrors.form)}
+                    helperText={projectErrors.name || projectErrors.form || " "}
+                />
+            </FormDialog>
         </>
     );
 }

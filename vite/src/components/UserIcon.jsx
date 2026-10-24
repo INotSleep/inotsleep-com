@@ -1,111 +1,58 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
-    Button,
-    IconButton,
     Avatar,
-    Menu,
-    MenuItem,
+    Button,
+    Divider,
+    IconButton,
     ListItemIcon,
     ListItemText,
-    Tooltip
+    Menu,
+    MenuItem,
+    Tooltip,
+    Typography
 } from "@mui/material";
 import LogoutIcon from "@mui/icons-material/Logout";
 import GitHubIcon from "@mui/icons-material/GitHub";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import axios from "axios";
+import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { startLogin, useCurrentUser } from "../lib/auth.js";
+import { useToast } from "../lib/toast.js";
 
 export default function UserIcon({ compact = false }) {
     const { t } = useTranslation("header");
-
-    const [user, setUser] = useState(null);
+    const toast = useToast();
+    const queryClient = useQueryClient();
+    const { data: user, isPending } = useCurrentUser();
     const [anchorEl, setAnchorEl] = useState(null);
-    const [copyHint, setCopyHint] = useState(null);
+    const [loggingIn, setLoggingIn] = useState(false);
 
-    const menuOpen = Boolean(anchorEl);
-
-    useEffect(() => {
-        let cancelled = false;
-
-        async function fetchCurrentUser() {
-            try {
-                const res = await axios.get("/api/auth/me");
-
-                if (!cancelled) {
-                    setUser(res.data.user || null);
-                }
-            } catch {
-                if (!cancelled) {
-                    setUser(null);
-                }
-            }
-        }
-
-        fetchCurrentUser();
-
-        return () => {
-            cancelled = true;
-        };
-    }, []);
+    if (isPending) return null;
 
     const handleLogin = () => {
-        const redirectAfter =
-            window.location.pathname +
-            window.location.search +
-            window.location.hash;
-
-        const url =
-            "/api/oauth/start?redirect_after=" +
-            encodeURIComponent(redirectAfter || "/");
-
-        window.location.href = url;
-    };
-
-    const handleAvatarClick = (event) => {
-        setAnchorEl(event.currentTarget);
-    };
-
-    const handleMenuClose = () => {
-        setAnchorEl(null);
-        setCopyHint(null);
-    };
-
-    const handleLogout = async () => {
-        try {
-            await axios.post("/api/auth/logout");
-        } catch {
-            // Ignore
-        }
-
-        setUser(null);
-        handleMenuClose();
+        setLoggingIn(true);
+        startLogin();
     };
 
     if (!user) {
         if (compact) {
             return (
-                <IconButton
-                    size="small"
-                    onClick={handleLogin}
-                    sx={{
-                        border: "1px solid",
-                        borderColor: "divider",
-                        bgcolor: "action.hover",
-                        color: "primary.main"
-                    }}
-                >
-                    <GitHubIcon fontSize="small" />
-                </IconButton>
+                <Tooltip title={t("login")}>
+                    <IconButton onClick={handleLogin} aria-label={t("login")} disabled={loggingIn}>
+                        <GitHubIcon fontSize="small" />
+                    </IconButton>
+                </Tooltip>
             );
         }
 
         return (
             <Button
+                variant="outlined"
                 size="small"
-                variant="contained"
                 onClick={handleLogin}
+                disabled={loggingIn}
                 startIcon={<GitHubIcon fontSize="small" />}
-                sx={{ minWidth: 112 }}
             >
                 {t("login")}
             </Button>
@@ -113,79 +60,68 @@ export default function UserIcon({ compact = false }) {
     }
 
     const login = user.github_login || user.login || "user";
-    const userId = user.id;
     const avatarUrl = user.github_avatar_url || user.avatar_url || null;
-    const avatarLetter = login.charAt(0).toUpperCase();
 
     const handleCopyId = async () => {
-        if (!userId) return;
-
+        setAnchorEl(null);
         try {
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                await navigator.clipboard.writeText(userId);
-            } else {
-                const textarea = document.createElement("textarea");
-                textarea.value = userId;
-                textarea.style.position = "fixed";
-                textarea.style.left = "-9999px";
-                document.body.appendChild(textarea);
-                textarea.select();
-                try {
-                    document.execCommand("copy");
-                } finally {
-                    document.body.removeChild(textarea);
-                }
-            }
-            setCopyHint(t("copied"));
+            await navigator.clipboard.writeText(user.id);
+            toast(t("copied"));
         } catch {
-            setCopyHint(t("copyFailed"));
+            toast(t("copyFailed"), "error");
+        }
+    };
+
+    const handleLogout = async () => {
+        setAnchorEl(null);
+        try {
+            await axios.post("/api/auth/logout");
+            queryClient.setQueryData(["me"], null);
+            queryClient.removeQueries({ queryKey: ["permissions"] });
+            toast(t("loggedOut"));
+        } catch {
+            toast(t("logoutFailed"), "error");
         }
     };
 
     return (
         <>
-            <Tooltip title={t("loggedInAs", { login })}>
+            <Tooltip title={login}>
                 <IconButton
-                    size="small"
-                    onClick={handleAvatarClick}
-                    sx={{
-                        p: 0,
-                        border: "1px solid",
-                        borderColor: "divider"
-                    }}
+                    onClick={(e) => setAnchorEl(e.currentTarget)}
+                    aria-label={t("accountMenu")}
+                    sx={{ p: 0.5 }}
                 >
                     <Avatar
                         src={avatarUrl || undefined}
                         alt={login}
-                        sx={{ width: 32, height: 32, bgcolor: "primary.main", color: "primary.contrastText" }}
+                        sx={{ width: 30, height: 30, bgcolor: "primary.main", color: "primary.contrastText", fontSize: 14 }}
                     >
-                        {!avatarUrl && avatarLetter}
+                        {login.charAt(0).toUpperCase()}
                     </Avatar>
                 </IconButton>
             </Tooltip>
 
             <Menu
                 anchorEl={anchorEl}
-                open={menuOpen}
-                onClose={handleMenuClose}
-                anchorOrigin={{
-                    vertical: "bottom",
-                    horizontal: "right"
-                }}
-                transformOrigin={{
-                    vertical: "top",
-                    horizontal: "right"
-                }}
+                open={Boolean(anchorEl)}
+                onClose={() => setAnchorEl(null)}
+                anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+                transformOrigin={{ vertical: "top", horizontal: "right" }}
+                slotProps={{ paper: { sx: { minWidth: 200 } } }}
             >
-                <MenuItem onClick={handleCopyId} disabled={!userId}>
-                    <ListItemIcon>
-                        <ContentCopyIcon fontSize="small" />
-                    </ListItemIcon>
-                    <ListItemText
-                        primary={copyHint || t("copyId")}
-                    />
-                </MenuItem>
-
+                <Typography variant="subtitle2" sx={{ px: 2, py: 1 }}>
+                    {login}
+                </Typography>
+                <Divider />
+                {user.id && (
+                    <MenuItem onClick={handleCopyId}>
+                        <ListItemIcon>
+                            <ContentCopyIcon fontSize="small" />
+                        </ListItemIcon>
+                        <ListItemText primary={t("copyId")} />
+                    </MenuItem>
+                )}
                 <MenuItem onClick={handleLogout}>
                     <ListItemIcon>
                         <LogoutIcon fontSize="small" />

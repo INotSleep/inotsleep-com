@@ -1,265 +1,176 @@
-import React, { useMemo } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
+import { useMemo, useState } from "react";
+import { Navigate, useParams, useSearchParams, Link as RouterLink } from "react-router-dom";
 import axios from "axios";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import {
-    Box,
-    Typography,
-    CircularProgress,
-    Alert,
-    Paper,
-    Divider,
-    Chip,
-    useMediaQuery,
-    useTheme,
-} from "@mui/material";
+import { Box, Button, Drawer, IconButton, Paper, Stack, Typography } from "@mui/material";
+import MenuOpenIcon from "@mui/icons-material/MenuOpen";
+import CloseIcon from "@mui/icons-material/Close";
 import WikiSidebar from "../components/WikiSidebar.jsx";
 import MarkdownView from "../components/MarkdownView.jsx";
-import { pagePanelSx, sectionTitleSx, subtleTextSx, monoLabelSx } from "../theme/neoStyles.js";
+import { BackLink, EmptyState, ErrorState, LoadingState, PageHeader } from "../components/ui.jsx";
 
-
+function findLabel(nodes, id) {
+    for (const node of nodes || []) {
+        if (node.id === id && node.type !== "category") return node.label;
+        const found = findLabel(node.children, id);
+        if (found) return found;
+    }
+    return null;
+}
 
 export default function Wiki() {
     const { projectId = "", "*": wikiPath = "" } = useParams();
     const [searchParams] = useSearchParams();
-    const { i18n } = useTranslation();
-    const theme = useTheme();
-    const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+    const { t, i18n } = useTranslation("wiki");
+    const [navOpen, setNavOpen] = useState(false);
 
-    const urlLang = searchParams.get("lang");
-    const lang = urlLang || i18n.language || "en";
+    const lang = searchParams.get("lang") || i18n.language || "en";
 
-    const segments = useMemo(
-        () => wikiPath.split("/").filter(Boolean),
-        [wikiPath]
-    );
+    const segments = useMemo(() => wikiPath.split("/").filter(Boolean), [wikiPath]);
 
-    const {
-        data: indexTree = [],
-        isPending: isIndexPending,
-        error: indexError,
-    } = useQuery({
+    const { data: project } = useQuery({
+        queryKey: ["project-meta", projectId, lang],
+        queryFn: async () => (await axios.get(`/api/projects/${projectId}`, { params: { lang } })).data
+    });
+
+    const indexQuery = useQuery({
         queryKey: ["wiki-pages", projectId, lang],
         enabled: !!projectId,
         queryFn: async () => {
-            const res = await axios.get(
-                `/api/projects/${projectId}/wiki/pages`,
-                { params: { lang } }
-            );
-            return res.data;
-        },
+            const res = await axios.get(`/api/projects/${projectId}/wiki/pages`, { params: { lang } });
+            return Array.isArray(res.data) ? res.data : [];
+        }
     });
+    const tree = indexQuery.data;
 
-    const indexPageId = useMemo(() => {
-        if (!indexTree || !Array.isArray(indexTree)) return "index";
-        const n = indexTree.find((x) => x.type === "index");
-        return (n && n.id) || "index";
-    }, [indexTree]);
+    const indexPageId = useMemo(
+        () => tree?.find((x) => x.type === "index")?.id || "index",
+        [tree]
+    );
+    const currentPageId = segments.length ? segments[segments.length - 1] : indexPageId;
 
-    const currentPageId = useMemo(() => {
-        if (segments.length) return segments[segments.length - 1];
-        return indexPageId; // запрос index страницы идёт по id из wiki
-    }, [segments, indexPageId]);
-
-    const {
-        data: pageData,
-        isPending: isPagePending,
-        error: pageError,
-    } = useQuery({
+    const pageQuery = useQuery({
         queryKey: ["wiki-page", projectId, lang, currentPageId],
-        enabled: !!projectId && !!currentPageId,
+        enabled: !!projectId && !!tree,
         queryFn: async () => {
             const res = await axios.get(
                 `/api/projects/${projectId}/wiki/pages/${currentPageId}`,
                 { params: { lang } }
             );
-            return res.data; // { content: string }
-        },
+            return res.data?.content || "";
+        }
     });
 
-    const pageContent = pageData?.content || "";
+    const back = { to: `/projects/${projectId}`, label: project?.name || projectId };
+    const homeTo = `/projects/${projectId}/wiki${searchParams.get("lang") ? `?lang=${lang}` : ""}`;
 
-    const anyError = indexError || pageError;
-    const errorMessage =
-        anyError?.response?.data?.error || anyError?.message || null;
+    if (indexQuery.isPending) return <LoadingState minHeight="50vh" />;
 
-    const contentNode = (
-        <>
-            {errorMessage && (
-                <Alert severity="error" sx={{ mb: 2 }}>
-                    {errorMessage}
-                </Alert>
-            )}
-
-            {isPagePending && !errorMessage ? (
-                <Box
-                    sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        height: "100%",
-                    }}
-                >
-                    <CircularProgress />
-                </Box>
-            ) : pageContent && !errorMessage ? (
-                <MarkdownView>{pageContent}</MarkdownView>
-            ) : !errorMessage ? (
-                <Typography color="text.secondary">
-                    No content for this page.
-                </Typography>
-            ) : null}
-        </>
-    );
-
-    const sidebarDesktop = isIndexPending ? (
-        <Box
-            sx={{
-                width: 280,
-                flexShrink: 0,
-                borderRight: "1px solid",
-                borderColor: "divider",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-            }}
-        >
-            <CircularProgress size={20} />
-        </Box>
-    ) : indexTree && indexTree.length ? (
-        <WikiSidebar
-            projectId={projectId}
-            tree={indexTree}
-            currentSegments={segments}
-            lang={lang}
-        />
-    ) : (
-        <Box
-            sx={{
-                width: 280,
-                flexShrink: 0,
-                borderRight: "1px solid",
-                borderColor: "divider",
-                p: 2,
-            }}
-        >
-            <Typography variant="body2" color="text.secondary">
-                No wiki index.
-            </Typography>
-        </Box>
-    );
-
-    const sidebarMobileInner = isIndexPending ? (
-        <Box
-            sx={{
-                width: "100%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                py: 2,
-            }}
-        >
-            <CircularProgress size={20} />
-        </Box>
-    ) : indexTree && indexTree.length ? (
-        <WikiSidebar
-            projectId={projectId}
-            tree={indexTree}
-            currentSegments={segments}
-            lang={lang}
-            fullWidth
-        />
-    ) : (
-        <Box sx={{ width: "100%" }}>
-            <Typography
-                variant="subtitle2"
-                sx={{ px: 1, mb: 0.5, color: "text.secondary" }}
-            >
-                Wiki
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ px: 1 }}>
-                No wiki index.
-            </Typography>
-        </Box>
-    );
-
-    if (isMobile) {
+    if (indexQuery.isError) {
+        if (indexQuery.error?.response?.status === 404) {
+            return <Navigate to={`/404?path=/projects/${projectId}/wiki`} replace />;
+        }
         return (
             <>
-                <Paper
-                    sx={pagePanelSx}
-                >
-                    <Typography variant="caption" sx={{ ...monoLabelSx, color: "primary.main" }}>
-                        / Wiki / {projectId}
-                    </Typography>
-                    <Typography variant="h2" sx={sectionTitleSx}>
-                        Documentation
-                    </Typography>
-                    <Divider />
-                    {contentNode}
-                </Paper>
-
-                <Paper
-                    sx={{
-                        ...pagePanelSx,
-                        mt: 2,
-                    }}
-                >
-                    {sidebarMobileInner}
-                </Paper>
+                <PageHeader title={t("title")} back={back} />
+                <ErrorState error={indexQuery.error} onRetry={indexQuery.refetch} />
             </>
         );
-    }   
-    return (
-        <Paper
-            sx={pagePanelSx}
-        >
-            <Box
-                sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: 1,
-                    flexWrap: "wrap"
-                }}
-            >
-                <Box>
-                    <Typography variant="caption" sx={{ ...monoLabelSx, color: "primary.main" }}>
-                        / Wiki / {projectId}
-                    </Typography>
-                    <Typography variant="h2" sx={sectionTitleSx}>
-                        Documentation
-                    </Typography>
-                </Box>
-                <Chip size="small" label={lang} variant="outlined" />
-            </Box>
-            <Typography variant="body2" sx={subtleTextSx}>
-                Navigate project guides on the left and read content on the right.
-            </Typography>
-            <Divider />
-            <Box
-                sx={{
-                    display: "flex",
-                    flex: 1,
-                    minHeight: 0,
-                }}
-            >
-                {/* Навигация слева */}
-                {sidebarDesktop}
+    }
 
-                {/* Контент справа */}
+    const sidebar = (
+        <WikiSidebar
+            projectId={projectId}
+            tree={tree}
+            currentSegments={segments}
+            lang={searchParams.get("lang")}
+            onNavigate={() => setNavOpen(false)}
+        />
+    );
+
+    const pageLabel = segments.length ? findLabel(tree, currentPageId) : null;
+
+    let content;
+    if (pageQuery.isPending) {
+        content = <LoadingState />;
+    } else if (pageQuery.isError) {
+        content =
+            pageQuery.error?.response?.status === 404 ? (
+                <EmptyState
+                    title={t("page_not_found")}
+                    action={
+                        <Button component={RouterLink} to={homeTo} variant="outlined">
+                            {t("go_home")}
+                        </Button>
+                    }
+                />
+            ) : (
+                <ErrorState error={pageQuery.error} onRetry={pageQuery.refetch} />
+            );
+    } else {
+        content = (
+            <Paper component="article" sx={{ p: { xs: 2.5, md: 5 }, minWidth: 0 }}>
+                <MarkdownView>{pageQuery.data}</MarkdownView>
+            </Paper>
+        );
+    }
+
+    return (
+        <>
+            <Stack direction="row" alignItems="center" justifyContent="space-between" gap={2}>
+                <BackLink {...back} />
+                <Button
+                    variant="outlined"
+                    startIcon={<MenuOpenIcon />}
+                    onClick={() => setNavOpen(true)}
+                    sx={{ display: { md: "none" } }}
+                >
+                    {pageLabel || t("contents")}
+                </Button>
+            </Stack>
+
+            <Box
+                sx={{
+                    display: "grid",
+                    gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "240px minmax(0, 1fr)" },
+                    gap: { md: 4 },
+                    alignItems: "start",
+                    mt: { md: -1 }
+                }}
+            >
                 <Box
+                    component="aside"
                     sx={{
-                        flexGrow: 1,
-                        minWidth: 0,
-                        pl: 2.5,
-                        overflow: "auto",
+                        display: { xs: "none", md: "block" },
+                        position: "sticky",
+                        top: 84,
+                        maxHeight: "calc(100dvh - 108px)",
+                        overflowY: "auto"
                     }}
                 >
-                    {contentNode}
+                    {sidebar}
                 </Box>
+
+                {content}
             </Box>
-        </Paper>
+
+            <Drawer
+                anchor="left"
+                open={navOpen}
+                onClose={() => setNavOpen(false)}
+                PaperProps={{ sx: { width: 300, maxWidth: "85vw", border: "none" } }}
+            >
+                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 2, height: 60 }}>
+                    <Typography variant="h6" component="p">
+                        {project?.name || t("contents")}
+                    </Typography>
+                    <IconButton onClick={() => setNavOpen(false)} aria-label={t("close")}>
+                        <CloseIcon />
+                    </IconButton>
+                </Stack>
+                <Box sx={{ p: 1 }}>{sidebar}</Box>
+            </Drawer>
+        </>
     );
 }

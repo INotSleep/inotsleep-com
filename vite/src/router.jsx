@@ -1,6 +1,7 @@
 import { createBrowserRouter, Outlet } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import RootLayout from './layouts/RootLayout.jsx';
+import { LoadingState } from './components/ui.jsx';
 
 const Home = lazy(() => import('./routes/Home.jsx'));
 const NotFound = lazy(() => import('./routes/NotFound.jsx'));
@@ -14,7 +15,7 @@ const I18nModeration = lazy(() => import('./routes/I18nModeration.jsx'));
 
 function withSuspense(element) {
     return (
-        <Suspense fallback={<div style={{ padding: 24 }}>Loading...</div>}>
+        <Suspense fallback={<LoadingState minHeight="50vh" />}>
             {element}
         </Suspense>
     );
@@ -63,6 +64,10 @@ export const router = createBrowserRouter(
                         {
                             index: true,
                             element: withSuspense(<I18nProjects />)
+                        },
+                        {
+                            path: "moderation",
+                            element: withSuspense(<I18nModeration />)
                         },
                         {
                             path: ":slug",

@@ -3,6 +3,7 @@ import { getTheme } from './theme.js';
 import { RouterProvider } from 'react-router-dom';
 import { router } from '../router.jsx';
 import { ColorModeContext } from './ColorModeContext.jsx';
+import ToastProvider from '../components/ToastProvider.jsx';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 export default function ThemeWrapper() {
@@ -13,9 +14,12 @@ export default function ThemeWrapper() {
     }, []);
 
     useEffect(() => {
-        if (typeof window !== "undefined") {
+        try {
             window.localStorage.setItem("color-mode", mode);
+        } catch {
+            // storage unavailable
         }
+        document.documentElement.style.colorScheme = mode;
     }, [mode]);
 
     const contextValue = useMemo(
@@ -27,7 +31,9 @@ export default function ThemeWrapper() {
         <ColorModeContext.Provider value={contextValue}>
             <ThemeProvider theme={getTheme(mode)}>
                 <CssBaseline />
-                <RouterProvider router={router} />
+                <ToastProvider>
+                    <RouterProvider router={router} />
+                </ToastProvider>
             </ThemeProvider>
         </ColorModeContext.Provider>
     );
@@ -38,7 +44,12 @@ function getInitialMode() {
         return "dark";
     }
 
-    const stored = window.localStorage.getItem("color-mode");
+    let stored = null;
+    try {
+        stored = window.localStorage.getItem("color-mode");
+    } catch {
+        // storage unavailable
+    }
     if (stored === "light" || stored === "dark") {
         return stored;
     }

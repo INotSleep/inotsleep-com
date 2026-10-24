@@ -13,6 +13,7 @@ import {
     getMarkdownCodeLanguageLoader,
     resolveMarkdownCodeLanguage,
 } from "../config/markdownCodeLanguages";
+import { fontMono } from "../theme/theme.js";
 
 let syntaxBasePromise = null;
 const loadedLanguageIds = new Set();
@@ -99,11 +100,12 @@ function MarkdownCode({ className, children, ...props }) {
             <Box
                 component="code"
                 sx={{
-                    fontFamily: "monospace",
+                    fontFamily: fontMono,
                     bgcolor: "action.selected",
-                    px: 0.5,
-                    borderRadius: 0.5,
-                    fontSize: "0.9em",
+                    px: 0.6,
+                    py: 0.1,
+                    borderRadius: 1,
+                    fontSize: "0.85em",
                 }}
                 {...props}
             >
@@ -119,14 +121,15 @@ function MarkdownCode({ className, children, ...props }) {
                 sx={{
                     margin: 0,
                     my: 1.5,
-                    p: 1.6,
-                    borderRadius: 1,
+                    p: 2,
+                    borderRadius: 2,
                     overflowX: "auto",
-                    border: "1px solid rgba(64,72,93,0.5)",
-                    bgcolor: "action.selected"
+                    border: "1px solid",
+                    borderColor: "divider",
+                    bgcolor: "action.hover"
                 }}
             >
-                <Box component="code" sx={{ fontFamily: "monospace", fontSize: "0.9rem" }}>
+                <Box component="code" sx={{ fontFamily: fontMono, fontSize: "0.875rem" }}>
                     {raw}
                 </Box>
             </Box>
@@ -168,10 +171,11 @@ function MarkdownCode({ className, children, ...props }) {
                 style={syntaxTheme}
                 customStyle={{
                     margin: 0,
-                    borderRadius: 8,
-                    fontSize: "0.9rem",
-                    border: "1px solid rgba(64,72,93,0.5)"
+                    borderRadius: 12,
+                    fontSize: "0.875rem",
+                    border: `1px solid ${theme.palette.divider}`
                 }}
+                codeTagProps={{ style: { fontFamily: fontMono } }}
                 wrapLongLines
                 {...props}
             >
@@ -181,54 +185,86 @@ function MarkdownCode({ className, children, ...props }) {
     );
 }
 
+const markdownSx = {
+    maxWidth: 820,
+    "& > :first-child": { mt: 0 },
+    "& > :last-child": { mb: 0 },
+    "& ul, & ol": { pl: 3, my: 1.5 },
+    "& li": { my: 0.5 },
+    "& li > p": { m: 0 },
+    "& hr": { border: 0, borderTop: "1px solid", borderColor: "divider", my: 4 },
+    "& blockquote": {
+        m: 0,
+        my: 2,
+        pl: 2,
+        borderLeft: "3px solid",
+        borderColor: "primary.main",
+        color: "text.secondary"
+    },
+    "& table": {
+        width: "100%",
+        borderCollapse: "collapse",
+        my: 2,
+        fontSize: "0.9rem",
+        display: "block",
+        overflowX: "auto"
+    },
+    "& th, & td": {
+        textAlign: "left",
+        px: 1.5,
+        py: 1,
+        borderBottom: "1px solid",
+        borderColor: "divider"
+    },
+    "& th": { fontWeight: 600 }
+};
+
+// react-markdown passes its AST node as a prop; keep it off the DOM.
+function omitNode(props) {
+    const { node: _node, ...rest } = props;
+    return rest;
+}
+
 export default function MarkdownView({ children }) {
     return (
-        <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            rehypePlugins={[rehypeSlug]}
-            components={{
-                h1: (props) => <Heading level={1} {...props} />,
-                h2: (props) => <Heading level={2} {...props} />,
-                h3: (props) => <Heading level={3} {...props} />,
-                p: ({ ...props }) => (
-                    <Typography variant="body1" paragraph sx={{ color: "text.secondary" }} {...props} />
-                ),
-                a: ({ ...props }) => (
-                    <MuiLink
-                        {...props}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                    />
-                ),
-                li: ({ ...props }) => (
-                    <li>
-                        <Typography
-                            component="span"
-                            variant="body1"
-                            {...props}
+        <Box sx={markdownSx}>
+            <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                rehypePlugins={[rehypeSlug]}
+                components={{
+                    h1: (props) => <Heading level={1} {...props} />,
+                    h2: (props) => <Heading level={2} {...props} />,
+                    h3: (props) => <Heading level={3} {...props} />,
+                    p: (props) => (
+                        <Typography variant="body1" sx={{ my: 1.5 }} {...omitNode(props)} />
+                    ),
+                    a: (props) => {
+                        const href = props.href || "";
+                        return href.startsWith("#") || href.startsWith("/") ? (
+                            <MuiLink {...omitNode(props)} />
+                        ) : (
+                            <MuiLink target="_blank" rel="noopener noreferrer" {...omitNode(props)} />
+                        );
+                    },
+                    img: (props) => (
+                        <Box
+                            component="img"
+                            sx={{
+                                maxWidth: "100%",
+                                height: "auto",
+                                display: "block",
+                                my: 2,
+                                borderRadius: 2,
+                            }}
+                            {...omitNode(props)}
                         />
-                    </li>
-                ),
+                    ),
 
-                img: ({ ...props }) => (
-                    <Box
-                        component="img"
-                        sx={{
-                            maxWidth: "80%",
-                            ml: 2,
-                            height: "auto",
-                            display: "block",
-                            my: 2,
-                            borderRadius: "5px",
-                        }}
-                        {...props}
-                    />
-                ),
-
-                code: (props) => <MarkdownCode {...props} />,
-            }}
-        >
-            {children}
-        </ReactMarkdown>
+                    code: (props) => <MarkdownCode {...omitNode(props)} />,
+                }}
+            >
+                {children}
+            </ReactMarkdown>
+        </Box>
     );
 }

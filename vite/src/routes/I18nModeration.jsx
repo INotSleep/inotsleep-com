@@ -1,506 +1,240 @@
 import { useState } from "react";
 import {
     Box,
+    Button,
+    Chip,
+    CircularProgress,
+    IconButton,
     Paper,
     Stack,
-    Typography,
-    CircularProgress,
-    Chip,
-    Button,
-    Divider,
-    ToggleButtonGroup,
     ToggleButton,
-    IconButton
+    ToggleButtonGroup,
+    Tooltip,
+    Typography
 } from "@mui/material";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
+import GitHubIcon from "@mui/icons-material/GitHub";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import axios from "axios";
-import { itemCardSx, monoLabelSx, pagePanelSx, sectionTitleSx, subtleTextSx } from "../theme/neoStyles.js";
+import { EmptyState, ErrorState, LoadingState, PageHeader } from "../components/ui.jsx";
+import { startLogin } from "../lib/auth.js";
+import { useToast } from "../lib/toast.js";
+import { errorMessage, monoSx } from "../lib/utils.js";
+import { languageFlag, languageName } from "../lib/languages.js";
+import "flag-icons/css/flag-icons.min.css";
 
 const PAGE_SIZE = 30;
 
+function SuggestedValue({ value }) {
+    const { t } = useTranslation("i18n");
+
+    if (value == null || (Array.isArray(value) && value.length === 0)) {
+        return (
+            <Typography variant="body2" color="text.secondary" sx={{ fontStyle: "italic" }}>
+                {t("mod_value_empty")}
+            </Typography>
+        );
+    }
+    if (Array.isArray(value)) {
+        return (
+            <Box component="ol" sx={{ m: 0, pl: 2.5 }}>
+                {value.map((line, idx) => (
+                    <Typography key={idx} component="li" variant="body2" sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                        {line}
+                    </Typography>
+                ))}
+            </Box>
+        );
+    }
+    return (
+        <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+            {String(value)}
+        </Typography>
+    );
+}
+
 export default function I18nModeration() {
     const { t } = useTranslation("i18n");
+    const toast = useToast();
     const queryClient = useQueryClient();
 
-    const [statusFilter, setStatusFilter] = useState("pending"); // pending | approved | rejected
+    const [statusFilter, setStatusFilter] = useState("pending");
     const [page, setPage] = useState(0);
 
-    const {
-        data: suggestions,
-        isPending,
-        isError,
-        error,
-        isFetching
-    } = useQuery({
+    const { data: suggestions = [], isPending, isError, error, isFetching, refetch } = useQuery({
         queryKey: ["i18n-moderation", statusFilter, page],
         queryFn: async () => {
             const res = await axios.get("/api/i18n/moderation/suggestions", {
-                params: {
-                    status: statusFilter,
-                    limit: PAGE_SIZE,
-                    offset: page * PAGE_SIZE
-                }
+                params: { status: statusFilter, limit: PAGE_SIZE, offset: page * PAGE_SIZE }
             });
-
             return Array.isArray(res.data) ? res.data : [];
         },
         staleTime: 5_000
     });
 
-    const approveMutation = useMutation({
-        mutationFn: async (id) => {
-            await axios.post(
-                `/api/i18n/moderation/suggestions/${id}/approve`
+    const reviewMutation = useMutation({
+        mutationFn: ({ id, action }) => axios.post(`/api/i18n/moderation/suggestions/${id}/${action}`),
+        onSuccess: (_res, { action, suggestion }) => {
+            queryClient.setQueryData(["i18n-moderation", statusFilter, page], (prev) =>
+                Array.isArray(prev) ? prev.filter((s) => s.id !== suggestion.id) : prev
             );
+            queryClient.invalidateQueries({ queryKey: ["i18n-moderation"] });
+            queryClient.invalidateQueries({ queryKey: ["i18n-progress"] });
+            toast(t(action === "approve" ? "mod_approved_toast" : "mod_rejected_toast", { key: suggestion.key_name }));
         },
-        onSuccess: () => {
-            queryClient.invalidateQueries({
-                queryKey: ["i18n-moderation"]
-            });
-        }
+        onError: (e) => toast(errorMessage(e, t("generic_error")), "error")
     });
 
-    const rejectMutation = useMutation({
-        mutationFn: async (id) => {
-            await axios.post(
-                `/api/i18n/moderation/suggestions/${id}/reject`
-            );
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({
-                queryKey: ["i18n-moderation"]
-            });
-        }
-    });
+    const review = (suggestion, action) => reviewMutation.mutate({ id: suggestion.id, action, suggestion });
 
-    const handleChangeStatusFilter = (_e, value) => {
-        if (!value) return;
-        setStatusFilter(value);
-        setPage(0);
-    };
+    const back = { to: "/i18n", label: t("title") };
+    const status = error?.response?.status;
 
-    const handleRefresh = () => {
-        queryClient.invalidateQueries({
-            queryKey: ["i18n-moderation"]
-        });
-    };
-
-    const handlePrevPage = () => {
-        setPage((p) => Math.max(0, p - 1));
-    };
-
-    const handleNextPage = () => {
-        if (Array.isArray(suggestions) && suggestions.length === PAGE_SIZE) {
-            setPage((p) => p + 1);
-        }
-    };
-
-    const renderStatusChip = (status) => {
-        if (status === 0 || status === "pending") {
-            return (
-                <Chip
-                    size="small"
-                    label={t("mod_status_pending")}
-                    color="warning"
-                    variant="outlined"
-                />
-            );
-        }
-        if (status === 1 || status === "approved") {
-            return (
-                <Chip
-                    size="small"
-                    label={t("mod_status_approved")}
-                    color="success"
-                    variant="outlined"
-                />
-            );
-        }
-        if (status === 2 || status === "rejected") {
-            return (
-                <Chip
-                    size="small"
-                    label={t("mod_status_rejected")}
-                    color="error"
-                    variant="outlined"
-                />
-            );
-        }
-        return (
-            <Chip
-                size="small"
-                label={String(status)}
-                variant="outlined"
-            />
-        );
-    };
-
-    const renderValue = (parsed) => {
-        if (parsed == null) {
-            return (
-                <Typography
-                    variant="body2"
-                    sx={{ opacity: 0.6, fontStyle: "italic" }}
-                >
-                    {t("mod_value_empty")}
-                </Typography>
-            );
-        }
-
-        if (Array.isArray(parsed)) {
-            if (parsed.length === 0) {
-                return (
-                    <Typography
-                        variant="body2"
-                        sx={{ opacity: 0.6, fontStyle: "italic" }}
-                    >
-                        {t("mod_value_empty_list")}
-                    </Typography>
-                );
+    const header = (
+        <PageHeader
+            title={t("mod_title")}
+            back={back}
+            actions={
+                !isError && (
+                    <Tooltip title={t("refresh")}>
+                        <span>
+                            <IconButton onClick={() => refetch()} disabled={isFetching} aria-label={t("refresh")}>
+                                <RefreshIcon />
+                            </IconButton>
+                        </span>
+                    </Tooltip>
+                )
             }
-            return (
-                <Box
-                    component="ul"
-                    sx={{
-                        pl: 2,
-                        m: 0,
-                        "& li": {
-                            fontSize: "0.9rem",     
-                            whiteSpace: "pre-wrap",
-                            wordBreak: "break-word"
-                        }
-                    }}
-                >
-                    {parsed.map((line, idx) => (
-                        <li key={idx}>{line}</li>
-                    ))}
-                </Box>
-            );
-        }
+        />
+    );
 
-        if (typeof parsed === "string") {
-            return (
-                <Typography
-                    variant="body2"
-                    sx={{ whiteSpace: "pre-wrap" }}
-                >
-                    {parsed}
-                </Typography>
-            );
-        }
-
-        // fallback — как обычный текст
+    if (isError && (status === 401 || status === 403)) {
         return (
-            <Typography
-                variant="body2"
-                sx={{ whiteSpace: "pre-wrap" }}
-            >
-                {String(parsed)}
-            </Typography>
-        );
-    };
-
-    // ------ состояния загрузки / ошибок ------
-
-    if (isPending) {
-        return (
-            <Paper sx={{ ...pagePanelSx, display: "flex", flexDirection: "row", alignItems: "center" }}>
-                <CircularProgress size={20} />
-                <Typography>{t("mod_loading")}</Typography>
-            </Paper>
+            <>
+                {header}
+                <EmptyState
+                    title={status === 401 ? t("mod_auth_required") : t("mod_forbidden")}
+                    action={
+                        status === 401 && (
+                            <Button variant="contained" startIcon={<GitHubIcon />} onClick={startLogin}>
+                                {t("login")}
+                            </Button>
+                        )
+                    }
+                />
+            </>
         );
     }
 
-    if (isError) {
-        const axiosError = error;
-        const status = axiosError?.response?.status;
-
-        if (status === 403) {
-            return (
-                <Paper sx={pagePanelSx}>
-                    <Typography color="error">
-                        {t("mod_forbidden")}
-                    </Typography>
-                </Paper>
-            );
-        }
-
-        if (status === 401) {
-            return (
-                <Paper sx={pagePanelSx}>
-                    <Typography color="error">
-                        {t("mod_auth_required")}
-                    </Typography>
-                </Paper>
-            );
-        }
-
-        return (
-            <Paper sx={pagePanelSx}>
-                <Typography color="error">
-                    {t("loading_error")}{" "}
-                    {axiosError?.message || String(axiosError)}
-                </Typography>
-            </Paper>
-        );
-    }
-
-    const list = Array.isArray(suggestions) ? suggestions : [];
-    const hasNext = list.length === PAGE_SIZE;
-    const isPendingStatus = statusFilter === "pending";
+    const hasNext = suggestions.length === PAGE_SIZE;
+    const isPendingTab = statusFilter === "pending";
 
     return (
-        <Paper
-            sx={pagePanelSx}
-        >
-            {/* Заголовок + фильтры */}
-            <Stack
-                direction="row"
-                alignItems="center"
-                justifyContent="space-between"
-                spacing={2}
-                flexWrap="wrap"
+        <>
+            {header}
+
+            <ToggleButtonGroup
+                size="small"
+                exclusive
+                value={statusFilter}
+                onChange={(_e, value) => {
+                    if (!value) return;
+                    setStatusFilter(value);
+                    setPage(0);
+                }}
+                sx={{ alignSelf: "flex-start" }}
             >
-                <Box>
-                    <Typography variant="caption" sx={{ ...monoLabelSx, color: "primary.main" }}>
-                        {t("breadcrumb_moderation")}
-                    </Typography>
-                    <Typography variant="h2" sx={{ ...sectionTitleSx, mt: 0.8 }}>
-                        {t("mod_title")}
-                    </Typography>
-                    <Typography
-                        variant="body2"
-                        sx={{ ...subtleTextSx, maxWidth: 700 }}
-                    >
-                        {t("mod_intro")}
-                    </Typography>
-                </Box>
+                <ToggleButton value="pending">{t("mod_tab_pending")}</ToggleButton>
+                <ToggleButton value="approved">{t("mod_tab_approved")}</ToggleButton>
+                <ToggleButton value="rejected">{t("mod_tab_rejected")}</ToggleButton>
+            </ToggleButtonGroup>
 
-                <Stack
-                    direction="row"
-                    spacing={2}
-                    alignItems="center"
-                    flexWrap="wrap"
-                >
-                    <ToggleButtonGroup
-                        size="small"
-                        exclusive
-                        value={statusFilter}
-                        onChange={handleChangeStatusFilter}
-                    >
-                        <ToggleButton value="pending">
-                            {t("mod_tab_pending")}
-                        </ToggleButton>
-                        <ToggleButton value="approved">
-                            {t("mod_tab_approved")}
-                        </ToggleButton>
-                        <ToggleButton value="rejected">
-                            {t("mod_tab_rejected")}
-                        </ToggleButton>
-                    </ToggleButtonGroup>
+            {isPending ? (
+                <LoadingState />
+            ) : isError ? (
+                <ErrorState error={error} onRetry={refetch} />
+            ) : suggestions.length === 0 ? (
+                <EmptyState title={isPendingTab ? t("mod_no_pending") : t("mod_no_suggestions")} />
+            ) : (
+                <Stack gap={2}>
+                    {suggestions.map((s) => {
+                        const busy = reviewMutation.isPending && reviewMutation.variables?.id === s.id;
+                        const busyAction = busy ? reviewMutation.variables.action : null;
 
-                    <IconButton
-                        size="small"
-                        onClick={handleRefresh}
-                        disabled={isFetching}
-                    >
-                        <RefreshIcon fontSize="small" />
-                    </IconButton>
-                </Stack>
-            </Stack>
-
-            <Divider />
-
-            {/* Навигация по страницам */}
-            <Stack
-                direction="row"
-                alignItems="center"
-                justifyContent="space-between"
-                sx={{ mb: 1 }}
-            >
-                <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                    {t("mod_page_info", {
-                        page: page + 1,
-                        count: list.length
-                    })}
-                </Typography>
-
-                <Stack direction="row" spacing={1}>
-                    <Button
-                        size="small"
-                        variant="outlined"
-                        onClick={handlePrevPage}
-                        disabled={page === 0}
-                    >
-                        {t("mod_prev_page")}
-                    </Button>
-                    <Button
-                        size="small"
-                        variant="outlined"
-                        onClick={handleNextPage}
-                        disabled={!hasNext}
-                    >
-                        {t("mod_next_page")}
-                    </Button>
-                </Stack>
-            </Stack>
-
-            {/* Список предложений */}
-            <Box sx={{ flex: 1 }}>
-                {list.length === 0 ? (
-                    <Typography
-                        variant="body2"
-                        sx={{ opacity: 0.8, mt: 1 }}
-                    >
-                        {statusFilter === "pending"
-                            ? t("mod_no_pending")
-                            : t("mod_no_suggestions")}
-                    </Typography>
-                ) : (
-                    <Stack spacing={1.5}>
-                        {list.map((s) => (
-                            <Box
-                                key={s.id}
-                                sx={{ ...itemCardSx, p: 1.6 }}
-                            >
-                                {/* Верхняя строка: проект + язык + статус */}
-                                <Stack
-                                    direction="row"
-                                    alignItems="center"
-                                    justifyContent="space-between"
-                                    spacing={1}
-                                >
-                                    <Box>
-                                        <Typography variant="subtitle1">
-                                            {s.project_name ||
-                                                s.project_slug ||
-                                                t("mod_unknown_project")}
-                                        </Typography>
-                                        {s.project_slug && (
-                                            <Typography
-                                                variant="caption"
-                                                sx={{ opacity: 0.7 }}
-                                            >
-                                                {t("mod_project_slug", {
-                                                    slug: s.project_slug
-                                                })}
-                                            </Typography>
-                                        )}
-                                    </Box>
-
-                                    <Stack
-                                        direction="row"
-                                        spacing={1}
-                                        alignItems="center"
-                                    >
-                                        <Chip
-                                            size="small"
-                                            label={s.language}
-                                            variant="outlined"
-                                        />
-                                        {renderStatusChip(s.status)}
-                                    </Stack>
+                        return (
+                            <Paper key={s.id} sx={{ p: { xs: 2, md: 2.5 }, opacity: busy ? 0.7 : 1, transition: "opacity .15s" }}>
+                                <Stack direction="row" alignItems="center" gap={1} flexWrap="wrap">
+                                    <Typography variant="subtitle2">
+                                        {s.project_name || s.project_slug || t("mod_unknown_project")}
+                                    </Typography>
+                                    <Chip
+                                        size="small"
+                                        variant="outlined"
+                                        icon={<Box component="span" className={`fi fi-${languageFlag(s.language)}`} sx={{ borderRadius: "2px", ml: "8px !important" }} />}
+                                        label={languageName(s.language)}
+                                        title={s.language}
+                                    />
+                                    <Typography variant="caption" color="text.secondary" sx={{ ml: "auto" }}>
+                                        {s.created_at ? new Date(s.created_at).toLocaleString() : ""}
+                                    </Typography>
                                 </Stack>
 
-                                {/* Ключ */}
                                 <Typography
-                                    variant="subtitle2"
-                                    sx={{
-                                        mt: 1,
-                                        fontFamily:
-                                            "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace"
-                                    }}
+                                    variant="body2"
+                                    color="text.secondary"
+                                    sx={{ ...monoSx, mt: 1, wordBreak: "break-all" }}
                                 >
                                     {s.key_name}
                                 </Typography>
 
-                                {/* Автор / даты */}
-                                <Typography
-                                    variant="caption"
-                                    sx={{ mt: 0.5, opacity: 0.8 }}
-                                >
-                                    {t("mod_meta", {
-                                        author:
-                                            s.author ||
-                                            t("mod_author_unknown"),
-                                        created: s.created_at
-                                            ? new Date(
-                                                  s.created_at
-                                              ).toLocaleString()
-                                            : "–",
-                                        reviewed: s.reviewed_at
-                                            ? new Date(
-                                                  s.reviewed_at
-                                              ).toLocaleString()
-                                            : "–"
-                                    })}
-                                </Typography>
-
-                                {/* Значение */}
-                                <Box sx={{ mt: 1.5 }}>
-                                    <Typography
-                                        variant="caption"
-                                        sx={{ opacity: 0.7 }}
-                                    >
-                                        {t("mod_suggested_value")}
-                                    </Typography>
-                                    <Box sx={{ mt: 0.5 }}>
-                                        {renderValue(s.value)}
-                                    </Box>
+                                <Box sx={{ mt: 1.5, p: 1.5, borderRadius: 2.5, bgcolor: "action.hover" }}>
+                                    <SuggestedValue value={s.value} />
                                 </Box>
 
-                                {/* Кнопки действий только для pending */}
-                                {isPendingStatus && (
-                                    <Stack
-                                        direction="row"
-                                        spacing={1}
-                                        sx={{ mt: 1.5, justifyContent: "flex-end" }}
-                                    >
+                                {isPendingTab && (
+                                    <Stack direction="row" gap={1} justifyContent="flex-end" sx={{ mt: 2 }}>
                                         <Button
-                                            size="small"
                                             variant="outlined"
-                                            color="error"
-                                            startIcon={
-                                                <CloseIcon fontSize="small" />
-                                            }
-                                            onClick={() =>
-                                                rejectMutation.mutate(s.id)
-                                            }
-                                            disabled={
-                                                rejectMutation.isPending ||
-                                                approveMutation.isPending
-                                            }
+                                            startIcon={busyAction === "reject" ? <CircularProgress size={16} color="inherit" /> : <CloseIcon />}
+                                            onClick={() => review(s, "reject")}
+                                            disabled={busy}
+                                            sx={{ "&:hover": { color: "error.main", borderColor: "error.main" } }}
                                         >
                                             {t("mod_reject")}
                                         </Button>
                                         <Button
-                                            size="small"
                                             variant="contained"
                                             color="success"
-                                            startIcon={
-                                                <CheckIcon fontSize="small" />
-                                            }
-                                            onClick={() =>
-                                                approveMutation.mutate(s.id)
-                                            }
-                                            disabled={
-                                                approveMutation.isPending ||
-                                                rejectMutation.isPending
-                                            }
+                                            startIcon={busyAction === "approve" ? <CircularProgress size={16} color="inherit" /> : <CheckIcon />}
+                                            onClick={() => review(s, "approve")}
+                                            disabled={busy}
                                         >
                                             {t("mod_approve")}
                                         </Button>
                                     </Stack>
                                 )}
-                            </Box>
-                        ))}
-                    </Stack>
-                )}
-            </Box>
-        </Paper>
+                            </Paper>
+                        );
+                    })}
+                </Stack>
+            )}
+
+            {(page > 0 || hasNext) && (
+                <Stack direction="row" alignItems="center" justifyContent="center" gap={2}>
+                    <Button variant="outlined" onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={page === 0}>
+                        {t("mod_prev_page")}
+                    </Button>
+                    <Typography variant="body2" color="text.secondary">
+                        {t("page_n", { page: page + 1 })}
+                    </Typography>
+                    <Button variant="outlined" onClick={() => setPage((p) => p + 1)} disabled={!hasNext}>
+                        {t("mod_next_page")}
+                    </Button>
+                </Stack>
+            )}
+        </>
     );
 }

@@ -1,78 +1,42 @@
 import { Box, Typography, Link } from "@mui/material";
 
-export default function Heading({ level, children, ...props }) {
-    const id = props.id;
-    const variant =
-        level === 1 ? "h3" :
-        level === 2 ? "h4" :
-        "h5";
+const VARIANTS = { 1: "h2", 2: "h3", 3: "h4" };
 
-    const Component = `h${level}`;
+export default function Heading({ level, children, ...rest }) {
+    const { node: _node, ...props } = rest;
+    const id = props.id;
 
     return (
         <Box
-            component={Component}
-            id={id}
+            component={`h${level}`}
             sx={{
-                position: "relative",
-                scrollMarginTop: 10,
-                mt: level === 1 ? 0.5 : 2.2,
-                mb: 1.1,
-                "&:hover .anchor-link": {
-                    opacity: 1,
-                },
+                scrollMarginTop: 84,
+                mt: level === 1 ? 0 : 4,
+                mb: 1.5,
+                "&:hover .anchor-link": { opacity: 1 }
             }}
             {...props}
         >
-            {id ? (
+            <Typography variant={VARIANTS[level] || "h5"} component="span">
+                {children}
+            </Typography>
+            {id && (
                 <Link
                     href={`#${id}`}
+                    className="anchor-link"
                     underline="none"
+                    aria-label="#"
                     sx={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 1,
-                        color: "inherit",
-                        cursor: "pointer",
+                        ml: 1,
+                        opacity: 0,
+                        color: "text.secondary",
+                        transition: "opacity .15s, color .15s",
+                        "&:hover": { color: "primary.main" },
+                        "&:focus-visible": { opacity: 1 }
                     }}
                 >
-                    <Typography
-                        variant={variant}
-                        component="span"
-                        sx={{
-                            m: 0,
-                            "&:hover": {
-                                textDecoration: "underline"
-                            }
-                        }}
-                    >
-                        {children}
-                    </Typography>
-
-                    <Typography
-                        component="span"
-                        className="anchor-link"
-                        sx={(theme) => ({
-                            opacity: 0,
-                            fontSize: "0.9rem",
-                            color: "text.secondary",
-                            transition: "opacity 0.15s ease",
-                            "&:hover": {
-                                color: theme.palette.text.primary,
-                            },
-                        })}
-                    >
-                        #
-                    </Typography>
+                    #
                 </Link>
-            ) : (
-                <Typography
-                    variant={variant}
-                    component="span"
-                    sx={{ m: 0, fontFamily: '"Space Grotesk", Inter, sans-serif' }}
-                >
-                    {children}
-                </Typography>
             )}
         </Box>
     );

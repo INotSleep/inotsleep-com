@@ -1,18 +1,11 @@
-import React from "react";
 import { Box } from "@mui/material";
-import { Outlet } from "react-router-dom";
+import { Outlet, ScrollRestoration } from "react-router-dom";
 import { Header } from "../components/Header";
 import { Footer } from "../components/Footer";
 
 export default function RootLayout() {
     return (
-        <Box
-            sx={{
-                minHeight: "100dvh",
-                display: "flex",
-                flexDirection: "column"
-            }}
-        >
+        <Box sx={{ minHeight: "100dvh", display: "flex", flexDirection: "column", overflowX: "clip" }}>
             <Header />
 
             <Box
@@ -21,17 +14,17 @@ export default function RootLayout() {
                     width: "100%",
                     flexGrow: 1,
                     px: { xs: 2, md: 4 },
-                    pt: { xs: 11, md: 13 },
-                    pb: { xs: 4, md: 6 }
+                    pt: { xs: 3, md: 5 },
+                    pb: { xs: 6, md: 8 }
                 }}
             >
                 <Box
                     sx={{
-                        maxWidth: 1320,
+                        maxWidth: 1120,
                         mx: "auto",
                         display: "flex",
                         flexDirection: "column",
-                        gap: 2
+                        gap: { xs: 3, md: 4 }
                     }}
                 >
                     <Outlet />
@@ -39,6 +32,7 @@ export default function RootLayout() {
             </Box>
 
             <Footer />
+            <ScrollRestoration />
         </Box>
     );
 }
