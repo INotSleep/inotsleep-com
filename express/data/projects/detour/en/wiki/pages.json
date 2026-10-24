@@ -1,0 +1,52 @@
+[
+  { "type": "index", "label": "Home" },
+  {
+    "type": "category",
+    "label": "Getting started",
+    "id": "getting-started",
+    "children": [
+      { "type": "page", "label": "Installation", "id": "installation" },
+      { "type": "page", "label": "First launch", "id": "first-launch" },
+      { "type": "page", "label": "Connecting to a host", "id": "connecting" },
+      { "type": "page", "label": "Importing from ~/.ssh", "id": "import-ssh" }
+    ]
+  },
+  {
+    "type": "category",
+    "label": "Everyday use",
+    "id": "everyday",
+    "children": [
+      { "type": "page", "label": "Terminal", "id": "terminal" },
+      { "type": "page", "label": "Files (SFTP)", "id": "files" },
+      { "type": "page", "label": "Keys", "id": "keys" },
+      { "type": "page", "label": "Snippets", "id": "snippets" },
+      { "type": "page", "label": "Tunnels", "id": "tunnels" },
+      { "type": "page", "label": "Jump hosts and proxies", "id": "proxies" }
+    ]
+  },
+  {
+    "type": "category",
+    "label": "Sync and teams",
+    "id": "sync-and-teams",
+    "children": [
+      { "type": "page", "label": "Sync between your devices", "id": "device-sync" },
+      { "type": "page", "label": "Teams", "id": "teams" },
+      { "type": "page", "label": "Access and roles", "id": "access" },
+      { "type": "page", "label": "Storage: Git or a folder", "id": "storage" },
+      { "type": "page", "label": "Conflicts and storage problems", "id": "conflicts" }
+    ]
+  },
+  {
+    "type": "category",
+    "label": "Reference",
+    "id": "reference",
+    "children": [
+      { "type": "page", "label": "Keyboard shortcuts", "id": "shortcuts" },
+      { "type": "page", "label": "Settings", "id": "settings" },
+      { "type": "page", "label": "Security model", "id": "security" },
+      { "type": "page", "label": "Data and privacy", "id": "data" },
+      { "type": "page", "label": "Troubleshooting", "id": "troubleshooting" },
+      { "type": "page", "label": "Building from source", "id": "building" }
+    ]
+  }
+]
