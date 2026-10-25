@@ -3,9 +3,11 @@ import { Link as RouterLink, useLocation, useNavigate, useSearchParams } from 'r
 import { useTranslation } from 'react-i18next';
 import { monoSx } from '../lib/utils.js';
 import { fontHeading } from '../theme/theme.js';
+import { useDocumentTitle, withSite } from "../lib/title.js";
 
 export default function NotFound() {
     const { t } = useTranslation("notfound");
+    useDocumentTitle(withSite(t("title")));
     const navigate = useNavigate();
     const { pathname } = useLocation();
     const [searchParams] = useSearchParams();

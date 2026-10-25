@@ -3,9 +3,11 @@ import { useTranslation } from "react-i18next";
 import ProjectCard from "../components/ProjectCard.jsx";
 import { EmptyState, ErrorState, LoadingState, PageHeader } from "../components/ui.jsx";
 import { useProjects } from "../lib/queries.js";
+import { useDocumentTitle, withSite } from "../lib/title.js";
 
 export default function Projects() {
     const { t } = useTranslation("projects");
+    useDocumentTitle(withSite(t("title")));
     const { data: projects = [], isPending, isError, error, refetch } = useProjects();
 
     return (

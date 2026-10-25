@@ -19,6 +19,7 @@ import {
 } from "../lib/queries.js";
 import { languageName } from "../lib/languages.js";
 import { monoSx } from "../lib/utils.js";
+import { useDocumentTitle } from "../lib/title.js";
 
 const GITHUB_URL = "https://github.com/inotsleep";
 const KOFI_URL = "https://ko-fi.com/inotsleep";
@@ -274,6 +275,7 @@ function SupportCard() {
 
 function Home() {
     const { t } = useTranslation("home");
+    useDocumentTitle(t("meta_title"));
     const { data: projects = [], isPending, isError, error, refetch } = useProjects();
 
     return (

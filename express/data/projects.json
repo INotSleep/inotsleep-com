@@ -3,6 +3,7 @@
         {
             "id": "detour",
             "name": "Detour",
+            "pageTitle": "Detour: open-source SSH client for teams",
             "description": "An open-source SSH client for teams with no server in the middle. Hosts, keys and passwords are shared through Git or a folder you already have, encrypted end to end.",
             "repo": "INotSleep/Detour",
             "tags": [
@@ -25,6 +26,7 @@
         {
             "id": "insutils",
             "name": "INSUtils",
+            "pageTitle": "INSUtils: utility toolkit for Paper plugins",
             "description": "A utility toolkit for Paper plugin development that provides a base plugin class, annotation-driven configuration, centralized i18n, and other helpers to reduce boilerplate.",
             "repo": "inotsleep/utils",
             "tags": [

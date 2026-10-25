@@ -1,5 +1,6 @@
 {
     "title": "Documentation",
+    "doc_title": "{{project}} documentation",
     "contents": "Contents",
     "close": "Close",
     "page_not_found": "This page does not exist yet.",

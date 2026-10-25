@@ -9,6 +9,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import WikiSidebar from "../components/WikiSidebar.jsx";
 import MarkdownView from "../components/MarkdownView.jsx";
 import { BackLink, EmptyState, ErrorState, LoadingState, PageHeader } from "../components/ui.jsx";
+import { useDocumentTitle, withSite } from "../lib/title.js";
 
 function findLabel(nodes, id) {
     for (const node of nodes || []) {
@@ -63,6 +64,9 @@ export default function Wiki() {
     });
 
     const back = { to: `/projects/${projectId}`, label: project?.name || projectId };
+    const docTitle = project && t("doc_title", { project: project.name });
+    const pageLabel = segments.length ? findLabel(tree, currentPageId) : null;
+    useDocumentTitle(docTitle && (pageLabel ? `${pageLabel} | ${docTitle}` : withSite(docTitle)));
     const homeTo = `/projects/${projectId}/wiki${searchParams.get("lang") ? `?lang=${lang}` : ""}`;
 
     if (indexQuery.isPending) return <LoadingState minHeight="50vh" />;
@@ -88,8 +92,6 @@ export default function Wiki() {
             onNavigate={() => setNavOpen(false)}
         />
     );
-
-    const pageLabel = segments.length ? findLabel(tree, currentPageId) : null;
 
     let content;
     if (pageQuery.isPending) {

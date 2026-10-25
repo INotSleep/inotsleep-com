@@ -7,6 +7,7 @@ import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import MarkdownView from "../components/MarkdownView";
 import { ErrorState, ExternalOrInternalButton, LoadingState, PageHeader } from "../components/ui.jsx";
+import { useDocumentTitle, withSite } from "../lib/title.js";
 
 async function getOptional(url, params) {
     try {
@@ -42,6 +43,7 @@ export default function ProjectDetails() {
     });
 
     const back = { to: "/projects", label: t("back_to_projects") };
+    useDocumentTitle(data && withSite(data.project.pageTitle || data.project.name));
 
     if (isPending) return <LoadingState minHeight="50vh" />;
 

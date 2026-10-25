@@ -30,6 +30,7 @@ import { useToast } from "../lib/toast.js";
 import { errorMessage, monoSx } from "../lib/utils.js";
 import { pickLanguage, useI18nLanguages } from "../lib/queries.js";
 import { languageName } from "../lib/languages.js";
+import { useDocumentTitle, withSite } from "../lib/title.js";
 
 const EMPTY_ROW = { key: "", type: "string", description: "" };
 
@@ -65,6 +66,7 @@ export default function ManageI18nProject() {
     const queryClient = useQueryClient();
     const toast = useToast();
     const { t } = useTranslation("i18n");
+    useDocumentTitle(withSite(t("title")));
     const { canManage, canUpload } = usePermissions();
 
     const langsQuery = useI18nLanguages();

@@ -411,5 +411,10 @@ export default {
 
 export {
     requireAuth,
-    requirePermission
+    requirePermission,
+    loadProjectsConfig,
+    resolveProjectLangDir,
+    resolveInside,
+    pathExists,
+    readJsonFile
 }

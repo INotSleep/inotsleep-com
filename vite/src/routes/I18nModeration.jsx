@@ -25,6 +25,7 @@ import { useToast } from "../lib/toast.js";
 import { errorMessage, monoSx } from "../lib/utils.js";
 import { languageFlag, languageName } from "../lib/languages.js";
 import "flag-icons/css/flag-icons.min.css";
+import { useDocumentTitle, withSite } from "../lib/title.js";
 
 const PAGE_SIZE = 30;
 
@@ -58,6 +59,7 @@ function SuggestedValue({ value }) {
 
 export default function I18nModeration() {
     const { t } = useTranslation("i18n");
+    useDocumentTitle(withSite(t("title")));
     const toast = useToast();
     const queryClient = useQueryClient();
 

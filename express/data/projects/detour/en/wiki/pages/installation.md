@@ -5,12 +5,10 @@ Download the installer for your system from the [latest release](https://github.
 | System | File |
 |---|---|
 | Windows 10 and 11 (x64) | `Detour_<version>_x64-setup.exe`, or the `.msi` for managed installs |
-| macOS on Apple Silicon | `Detour_<version>_aarch64.dmg` |
+| macOS (Apple Silicon and Intel) | `Detour_<version>_universal.dmg` |
 | Debian, Ubuntu and derivatives | `Detour_<version>_amd64.deb` |
 | Fedora, openSUSE and other RPM systems | `Detour-<version>-1.x86_64.rpm` |
 | Any other Linux | `Detour_<version>_amd64.AppImage` |
-
-There is no build for Intel Macs yet.
 
 ## First start on Windows
 

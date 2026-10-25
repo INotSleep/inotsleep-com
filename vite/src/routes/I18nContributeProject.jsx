@@ -29,6 +29,7 @@ import { EmptyState, ErrorState, LoadingState, PageHeader } from "../components/
 import { startLogin, useCurrentUser } from "../lib/auth.js";
 import { errorMessage, monoSx } from "../lib/utils.js";
 import { getSavedTargetLang, pickLanguage, saveTargetLang, useI18nLanguages } from "../lib/queries.js";
+import { useDocumentTitle, withSite } from "../lib/title.js";
 
 function keyTypeOf(keyRow, ...values) {
     const raw = typeof keyRow?.value_type === "string" ? keyRow.value_type.trim().toLowerCase() : "";
@@ -286,6 +287,7 @@ export default function I18nContributeProject() {
     const [searchParams, setSearchParams] = useSearchParams();
     const { t } = useTranslation("i18n");
     const { data: user, isPending: userPending } = useCurrentUser();
+    useDocumentTitle(withSite(t("title")));
 
     const { data: languages, isPending: langsPending, isError: langsError, error: langsErr, refetch: refetchLangs } =
         useI18nLanguages();

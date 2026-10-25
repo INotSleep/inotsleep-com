@@ -26,6 +26,7 @@ import {
     useI18nLanguages,
     useProjects
 } from "../lib/queries.js";
+import { useDocumentTitle, withSite } from "../lib/title.js";
 
 function I18nProjectCard({ project, lang, canManage }) {
     const { t } = useTranslation("i18n");
@@ -73,6 +74,7 @@ function I18nProjectCard({ project, lang, canManage }) {
 
 export default function I18nProjects() {
     const { t } = useTranslation("i18n");
+    useDocumentTitle(withSite(t("title")));
     const toast = useToast();
     const queryClient = useQueryClient();
     const { canManage, canModerate } = usePermissions();
