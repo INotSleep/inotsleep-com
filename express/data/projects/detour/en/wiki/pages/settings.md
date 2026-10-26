@@ -17,6 +17,7 @@ Open **Settings** at the bottom of the sidebar. Changes apply at once. **Collaps
 | Font size | Terminal text size |
 | Scrollback | How many lines a terminal keeps: 1,000 to 50,000 |
 | Copy and paste | **Right click, Ctrl+C and Ctrl+V** (like your system terminal) or **Ctrl+Shift+C and Ctrl+Shift+V** (like Termius). See [Terminal](/projects/detour/wiki/everyday/terminal) |
+| Highlight output | On by default: colours the prompt, addresses, paths, sizes and status words in output that has no colours of its own. See [Highlighted output](/projects/detour/wiki/everyday/terminal#highlighted-output) |
 
 ## Files
 

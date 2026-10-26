@@ -12,7 +12,7 @@ Download the installer for your system from the [latest release](https://github.
 
 ## First start on Windows
 
-The installers aren't code-signed yet, so SmartScreen may show "Windows protected your PC". Click **More info**, then **Run anyway**.
+The Windows installers and the app are signed by "Open Source Developer Vladyslav Muntian" with a Certum code signing certificate. Until the certificate builds up a reputation with Microsoft, SmartScreen may still show "Windows protected your PC": check that the publisher is the one above, click **More info**, then **Run anyway**.
 
 ## First start on macOS
 
