@@ -14,5 +14,6 @@
     "logout": "Log out",
     "loggedOut": "Logged out",
     "logoutFailed": "Could not log out",
-    "languageEnglish": "English"
+    "languageEnglish": "English",
+    "loading": "Loading"
 }

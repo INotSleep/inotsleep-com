@@ -223,6 +223,7 @@ function TranslationsSummary() {
                             <LinearProgress
                                 variant="determinate"
                                 value={p.progressPercent}
+                                aria-label={p.name}
                                 color={p.progressPercent === 100 ? "success" : "primary"}
                                 sx={{ height: 6 }}
                             />

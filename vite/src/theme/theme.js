@@ -1,9 +1,9 @@
 import { alpha, createTheme } from "@mui/material/styles";
 
-export const fontHeading = '"Space Grotesk", Inter, system-ui, sans-serif';
-export const fontBody = 'Inter, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+export const fontHeading = '"Space Grotesk Variable", "Inter Variable", system-ui, sans-serif';
+export const fontBody = '"Inter Variable", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
 export const fontMono =
-    '"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
+    '"JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
 
 const darkPalette = {
     mode: "dark",

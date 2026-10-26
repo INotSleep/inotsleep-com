@@ -137,6 +137,7 @@ export function Header() {
 
             {isFetching && (
                 <LinearProgress
+                    aria-label={t("loading")}
                     sx={{
                         position: "absolute",
                         left: 0,

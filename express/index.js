@@ -3,6 +3,7 @@ import fs from 'fs/promises';
 import { db } from './modules/database.js'
 import dotenv from 'dotenv';
 import helmet from 'helmet';
+import compression from 'compression';
 import { rateLimit } from 'express-rate-limit';
 dotenv.config();
 
@@ -21,6 +22,9 @@ async function start() {
             crossOriginEmbedderPolicy: false
         })
     );
+
+    // gzip/brotli for HTML, JS, CSS, JSON and SVG; nginx passes the compressed body through.
+    app.use(compression());
 
     app.use(
         "/api",

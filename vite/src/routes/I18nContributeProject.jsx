@@ -379,6 +379,7 @@ export default function I18nContributeProject() {
                     <LinearProgress
                         variant="determinate"
                         value={percent}
+                        aria-label={data.project?.name || slug}
                         color={percent === 100 ? "success" : "primary"}
                         sx={{ height: 6 }}
                     />

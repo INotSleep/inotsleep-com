@@ -51,6 +51,7 @@ function I18nProjectCard({ project, lang, canManage }) {
                 <LinearProgress
                     variant="determinate"
                     value={percent}
+                    aria-label={project.name}
                     color={percent === 100 ? "success" : "primary"}
                     sx={{ height: 6 }}
                 />

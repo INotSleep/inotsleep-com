@@ -33,7 +33,15 @@ function init(app) {
         }
     });
 
-    app.use(express.static(distDir, { index: false }));
+    app.use(express.static(distDir, {
+        index: false,
+        setHeaders(res, filePath) {
+            // Vite puts a content hash in every file name under assets/, so a URL never changes meaning.
+            if (filePath.startsWith(path.join(distDir, 'assets') + path.sep)) {
+                res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+            }
+        }
+    }));
 
     app.get('*path', async (req, res, next) => {
         let template;
