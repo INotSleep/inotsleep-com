@@ -14,11 +14,13 @@ Locking closes open tunnels and file browsers. Terminal sessions keep running be
 ## The window
 
 - **Sidebar:** the vault switcher (your personal vault and every team you're in), quick connect (**Ctrl+K**), and the sections: Hosts, Keys, Snippets, Tunnels, Team (or Teams in the personal vault) and Settings.
-- **Tabs:** terminals and file browsers open as tabs next to the current section.
+- **Tabs:** terminals and SFTP tabs open next to the current section. **+** opens a connection, the folder button a new SFTP tab.
 
 ## Language and theme
 
 The interface is in English and Russian. By default Detour follows the system language: Russian if Russian is among your system languages, English otherwise. Switch it in **Settings → Appearance → Language**; the change applies at once.
+
+The look starts as Detour Dark. Pick another theme, or make your own, in **Settings → Appearance → Theme**; see [Themes](/projects/detour/wiki/reference/settings#themes).
 
 ## Next
 

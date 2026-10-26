@@ -12,9 +12,16 @@ Use a **private, empty** repository on any Git host (GitHub, GitLab, Gitea, your
 2. Add that key's **Public key** (Detour shows a copy button) as a deploy key with write access, or to your account.
 3. The first time, compare the server's fingerprint with the one your Git host publishes, then trust it.
 
-**Over HTTPS** (`https://github.com/you/team-vault.git`):
+**On GitHub over HTTPS** (`https://github.com/you/team-vault.git`), signing in with GitHub is the easiest:
 
-1. Create an **Access token** with read and write access to that repository only. On GitHub: a fine-grained token with **Contents: Read and write**.
+1. Click **Sign in with GitHub**. Detour shows a short code; **Copy code and open GitHub**, paste it there and allow access.
+2. If the repository doesn't have the **Detour Sync** app yet, Detour says so and offers **Install on GitHub**: install it on that repository only. Detour notices by itself once it's done.
+
+The sign-in only reaches the repositories you installed Detour Sync on, with read and write access to their contents, and only those you can reach anyway. It belongs to this device: it's kept in your personal vault but doesn't sync, and each device signs in on its own. It renews itself; if GitHub stops accepting it, the team page or **Settings → Sync** offers **Check GitHub access** to sign in again.
+
+**With an access token** (any Git host over HTTPS, or GitHub if you prefer; on GitHub choose **Use an access token**):
+
+1. Create a token with read and write access to that repository only. On a github.com repository, **Create on GitHub** opens GitHub's form already filled in (a fine-grained token with **Contents: Read and write**, valid for a year); pick the repository there.
 2. Paste it into **Access token**. Each member uses a token of their own; it stays in their personal vault.
 
 If a token expires or is revoked, the team page shows it and offers **New token**.

@@ -36,6 +36,10 @@
 | Storage unavailable / Folder unavailable | The folder was moved, or a network drive isn't mounted. Point Detour at it again. |
 | Can't reach the repository | Check the network and the repository URL. |
 | The repository rejected the token | The token expired or lacks write access. Use **New token**. |
+| Sign in with GitHub again | GitHub no longer accepts this device's sign-in. Use **Check GitHub access** and sign in. |
+| Detour Sync isn't installed on this repository | Install the Detour Sync app on that repository (**Install on GitHub**), or check that your account can reach it. |
+| The code expired, start again | The GitHub sign-in code lasts 15 minutes. Click **Sign in with GitHub** again. |
+| Access was not granted on GitHub | Access was refused on GitHub. Sign in again and allow it. |
 | A token is only sent over https | Use an `https://` URL for token logins. |
 | The repository server key has changed | Compare the new fingerprint with your Git host's published ones before **Replace key**. |
 | There's no team vault in this folder | You chose the wrong folder, or it hasn't synced to this device yet. |

@@ -32,7 +32,7 @@ Teams kept in a Git repository connect on your other devices by themselves. A te
 
 ## Status and problems
 
-The sidebar shows when the vault last synced. **Sync** in Settings syncs right away. If the storage can't be reached, or a repository's token or server key changed, the status says so and offers the fix (**New token**, **Replace server key**).
+The sidebar shows when the vault last synced. **Sync** in Settings syncs right away. If the storage can't be reached, or a repository's token or server key changed, the status says so and offers the fix (**New token** or **Check GitHub access**, **Replace server key**).
 
 ## Turn it off
 

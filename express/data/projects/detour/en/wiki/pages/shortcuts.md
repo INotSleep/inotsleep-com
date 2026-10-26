@@ -30,7 +30,7 @@ See [Terminal](/projects/detour/wiki/everyday/terminal) for the two copy and pas
 
 | Keys | Action |
 |---|---|
-| **Enter** | Open the folder, or download the selection |
+| **Enter** | Open the folder; on a file, upload it (this computer's side) or download it (the server's side) |
 | **Backspace** | Up one folder |
 | **↑** / **↓**, **Home** / **End** | Move through the list |
 | **Shift+↑** / **Shift+↓** | Extend the selection |

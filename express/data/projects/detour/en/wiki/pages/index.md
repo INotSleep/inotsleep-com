@@ -13,7 +13,7 @@ Detour is an open-source SSH client for Windows, macOS and Linux. On top of the 
 ## Working with servers
 
 - [Terminal](/projects/detour/wiki/everyday/terminal): tabs, split panes, search, copy and paste
-- [Files](/projects/detour/wiki/everyday/files): browse, upload and download over SFTP
+- [Files](/projects/detour/wiki/everyday/files): this computer beside the server, copy files between them, edit a server's file in your editor
 - [Keys](/projects/detour/wiki/everyday/keys): create, import and export SSH keys
 - [Snippets](/projects/detour/wiki/everyday/snippets): saved commands you run on any host
 - [Tunnels](/projects/detour/wiki/everyday/tunnels): port forwarding and a SOCKS proxy

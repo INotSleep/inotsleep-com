@@ -1,6 +1,6 @@
 # Terminal
 
-Every connection opens as a tab. Click a tab to switch, middle-click or **×** to close it, and **+** (or **Ctrl+K**) to open another connection.
+Every connection opens as a tab. The first tab is the section open in the sidebar. Click a tab to switch, middle-click or **×** to close it, **+** (or **Ctrl+K**) to open another connection, and the folder button next to it for a new [SFTP tab](/projects/detour/wiki/everyday/files).
 
 ## Split panes
 
@@ -34,4 +34,4 @@ The terminal says **Connection closed. Enter: reconnect**. Press **Enter** in th
 
 ## Settings
 
-Font size and scrollback length are in **Settings → Terminal**.
+Theme, font size and scrollback length are in **Settings → Terminal**. By default a terminal takes the app's theme; see [Themes](/projects/detour/wiki/reference/settings#themes).
