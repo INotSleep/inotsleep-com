@@ -50,6 +50,18 @@ Sync of your personal vault between your devices. See [Sync between your devices
 | Lock when idle | 5 minutes, 15 minutes (default), 1 hour, or Never |
 | Lock now | Locks right away |
 
+## Command line
+
+macOS only: **Install** puts the `detour` command on your `PATH` (a link in `/usr/local/bin`; macOS asks for your password). The installers on Windows and Linux do it themselves. See [Command line](/projects/detour/wiki/command-line/cli).
+
+## AI agents
+
+Every agent you gave access to: its hosts, what it may do, until when, and when it last used it. **Revoke** takes the access away and closes its sessions. See [AI agents](/projects/detour/wiki/command-line/agents).
+
+## Detour in AI clients
+
+The AI clients on this computer (Claude Code, Claude Desktop, Codex, Cursor, VS Code, Windsurf, Gemini CLI). **Add** adds Detour to a client's MCP servers, **Remove** takes it out; restart the client afterwards. **Update** shows when a client has Detour from another place, after you moved or reinstalled it.
+
 ## About
 
 | Item | What it shows |

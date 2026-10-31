@@ -10,6 +10,8 @@ Download the installer for your system from the [latest release](https://github.
 | Fedora, openSUSE and other RPM systems | `Detour-<version>-1.x86_64.rpm` |
 | Any other Linux | `Detour_<version>_amd64.AppImage` |
 
+The installers also put the `detour` [command line](/projects/detour/wiki/command-line/cli) on your `PATH`. For a server without a desktop, the release has it alone: `detour-cli-<version>-<system>`.
+
 ## First start on Windows
 
 The Windows installers and the app are signed by "Open Source Developer Vladyslav Muntian" with a Certum code signing certificate. Until the certificate builds up a reputation with Microsoft, SmartScreen may still show "Windows protected your PC": check that the publisher is the one above, click **More info**, then **Run anyway**.

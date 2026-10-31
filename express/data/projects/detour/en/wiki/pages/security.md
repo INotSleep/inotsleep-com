@@ -14,6 +14,8 @@ Detour treats the storage, the network and every other member's computer as host
 | a server's host key changes | the connection stops before any password or key is sent. |
 | a Detour ID is swapped on its way to an admin | the fingerprints you compare don't match. |
 | someone publishes a fake update | the app refuses it: updates must carry the project's signature. |
+| an AI agent goes further than asked | it reaches only the hosts and rights you allowed, for the time you chose, never sees a password or key, and can't accept a new server key. |
+| a program in your terminal runs `detour` | it works only in a terminal you trusted, and the master password is never read from a pipe. |
 
 ## How it's built
 
@@ -22,6 +24,8 @@ Detour treats the storage, the network and every other member's computer as host
 - **Every change** is signed with Ed25519 and chained to the device's previous change. Each change also records how far its author had read every other device, so missing or rolled-back changes show up.
 - **SSH** is [russh](https://github.com/Eugeny/russh), TLS for Git over HTTPS is [rustls](https://github.com/rustls/rustls) with your system's certificate store.
 - **Updates** are signed with the project's key, which is built into the app.
+- **The core** (the process that holds your unlocked vault) listens only for your user: a named pipe only you can open on Windows, a socket in a folder only you can enter elsewhere. It checks which program is on the other end: the window must be Detour's own, a terminal must be one you trusted, and an [AI agent](/projects/detour/wiki/command-line/agents) must bring a token you granted. Detour keeps only a hash of each token.
+- **AI agents** never receive a password, a passphrase or a private key, can't export keys, can't forward ssh-agent, and work only in sessions they opened.
 - No accounts, no telemetry.
 
 ## What cryptography can't do

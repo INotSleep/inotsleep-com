@@ -11,6 +11,8 @@ Hosts, keys and passwords are shared through a Git repository or a folder you al
 - **Import.** `~/.ssh/config` with `Include`, patterns and `ProxyJump`, keys and `known_hosts`.
 - **All your devices.** Your vault syncs between them. A new device joins with a one-time code.
 - **Teams.** Access per host, key and snippet, per person.
+- **Command line.** `detour` does everything the app does, in a terminal and on servers without a desktop.
+- **AI agents.** Claude Code, Codex, Cursor and others work on your servers over MCP, only where and for as long as you allow, without ever seeing a password or key.
 
 ![Hosts](/api/projects/detour/assets/hosts.png)
 

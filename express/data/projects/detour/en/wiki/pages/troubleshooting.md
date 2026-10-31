@@ -48,6 +48,18 @@
 | This device is in teams: leave them first | A device with its own team identity can't join another person's synced vault. |
 | Waiting to be added | Send your Detour ID to a team admin. |
 
+## Command line and AI agents
+
+| Message | What to do |
+|---|---|
+| Allow this terminal in the Detour window | The window asks whether this terminal may use Detour; click **Allow** there. |
+| Detour asks for the master password here, but this is not a terminal | `detour` was run from a script or a pipe in a terminal that isn't trusted yet. Run any `detour` command in that terminal by hand first. |
+| The Detour core running now is an older version | After an update an old core can still be running with sessions in it. Run `detour quit` (or **Quit Detour** in the tray) and start again. |
+| Several hosts are called that | Use the host's full name, `team/name`, or its id. |
+| (agent) Detour has not confirmed this server's key | Connect to the host once yourself in Detour and confirm its key; an agent can't. |
+| (agent) The host's login needs a password or passphrase Detour has not saved | Save the password for the host in Detour. Agents never type one. |
+| (agent) Nobody approved the command in time | Watch the Detour window, or run `detour approve`, while the agent works with **Open terminals**; or give it **Run commands without asking**. |
+
 ## Updates
 
 | Message | What to do |

@@ -15,6 +15,7 @@ Locking closes open tunnels and file browsers. Terminal sessions keep running be
 
 - **Sidebar:** the vault switcher (your personal vault and every team you're in), quick connect (**Ctrl+K**), and the sections: Hosts, Keys, Snippets, Tunnels, Team (or Teams in the personal vault) and Settings.
 - **Tabs:** terminals and SFTP tabs open next to the current section. **+** opens a connection, the folder button a new SFTP tab.
+- **Tray:** while Detour is unlocked or has sessions or tunnels running, closing the window keeps it in the tray (the menu bar on macOS). Click the icon to open the window again; its menu also locks Detour and quits it. Quitting ends every session and tunnel.
 
 ## Language and theme
 

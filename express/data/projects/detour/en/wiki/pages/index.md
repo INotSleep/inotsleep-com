@@ -25,6 +25,11 @@ Detour is an open-source SSH client for Windows, macOS and Linux. On top of the 
 - [Teams](/projects/detour/wiki/sync-and-teams/teams) and [access per person](/projects/detour/wiki/sync-and-teams/access)
 - [Where a team lives: Git or a folder](/projects/detour/wiki/sync-and-teams/storage)
 
+## Command line and AI agents
+
+- [Command line](/projects/detour/wiki/command-line/cli): everything the app does, in a terminal and on servers without a desktop
+- [AI agents](/projects/detour/wiki/command-line/agents): Claude Code, Codex, Cursor and others work on your servers through Detour, with access you allow and see
+
 ## Reference
 
 [Keyboard shortcuts](/projects/detour/wiki/reference/shortcuts) · [Settings](/projects/detour/wiki/reference/settings) · [Security model](/projects/detour/wiki/reference/security) · [Data and privacy](/projects/detour/wiki/reference/data) · [Troubleshooting](/projects/detour/wiki/reference/troubleshooting) · [Building from source](/projects/detour/wiki/reference/building)

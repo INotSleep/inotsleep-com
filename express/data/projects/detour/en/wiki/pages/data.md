@@ -10,6 +10,8 @@ Detour connects only to:
 
 There are no accounts, no analytics and no telemetry.
 
+**Settings → Detour in AI clients** and `detour mcp add` write to the MCP settings of the AI clients you pick (for example `~/.claude.json` or `~/.codex/config.toml`), and nowhere else. AI agents get from Detour only what you allow them, and never a password or key.
+
 ## Where your data is
 
 Everything lives in one folder:
