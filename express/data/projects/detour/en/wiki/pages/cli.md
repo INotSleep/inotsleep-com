@@ -87,6 +87,7 @@ A server seen for the first time shows its key fingerprint and asks whether to t
 
 ```bash
 for h in web db cache; do detour exec "$h" -- uptime; done
+pg_dump app | detour exec backup -- "cat > /srv/backups/app.sql"   # what is piped in is the command's input (up to 32 MB)
 ```
 
 ## Tunnels, keys, snippets
