@@ -106,18 +106,53 @@ detour snippets add disk -- df -h
 detour snippets run disk web
 ```
 
-## Sync and teams
+## Sync between your devices
+
+A server gets the vault you use everywhere else the same way a new laptop does: with a one-time code from one of your devices.
 
 ```bash
-detour sync                       # the state of sync between your devices
-detour sync --now
+# on a device that has the vault (or in the app: Settings → Sync → New device)
+detour sync add-device
+
+# on the new one
+detour keys import ~/.ssh/id_ed25519                 # the key that opens the repository
+detour sync join git@github.com:me/vault.git --key id_ed25519 --code XXXX-XXXX-XXXX-XXXX
+```
+
+The place is a folder (Syncthing, a network share) or a Git repository: `git@host:path` or `ssh://` with a key of the vault (`--key`) or ssh-agent (the default), `https://` with a token (`--token`, asked) or **Sign in with GitHub** (`--github`). Without `--code` it is asked; the recovery key works too. A server seen for the first time shows its key fingerprint and asks whether to trust it.
+
+```bash
+detour sync                       # the state
+detour sync --now                 # sync now; a changed server key is asked about
+detour sync enable ~/Sync/detour  # start syncing this vault (a new, empty folder or repository)
+detour sync recovery-key
+detour sync token                 # a new token for the repository, or --github
+detour sync disable               # stop on this device; the synced copy stays
+```
+
+### Signing in with GitHub
+
+```bash
+detour github login               # shows a code to enter at github.com/login/device, from any device
+detour github                     # who is signed in
+detour github logout
+```
+
+`--github` signs in by itself when needed, and waits while you install Detour Sync on the repository if it isn't yet.
+
+## Teams
+
+```bash
 detour id                         # your Detour ID, to send to a team admin
+detour teams join git@github.com:acme/detour.git --key id_ed25519   # shows the creator's fingerprint to compare
 detour teams ls
 detour -T acme teams members
 detour -T acme teams add detour1q… Alice --role member --access view
 detour -T acme teams access web Alice secret
 detour -T acme ls                 # the team's hosts
 ```
+
+`teams create <place> --name Acme --me Alice` makes a team in an empty folder or repository and shows its recovery key once; `teams recover <place> --me Alice` takes a team back with that key. `-T acme teams token` sets a new token for the team's repository.
 
 `-T` (`--team`) works with every command: `detour -T acme exec web -- uptime`.
 
@@ -141,5 +176,7 @@ Messages and help are in English or Russian, as your system is; `DETOUR_LANG=en`
 | `tunnels ls / up / down` | tunnels |
 | `keys ls / gen / import / export / rm` | keys |
 | `snippets ls / add / rm / run` | snippets |
-| `sync`, `id`, `teams …` | sync and teams |
+| `sync`, `sync enable / join / add-device / recovery-key / token / disable` | [sync between your devices](#sync-between-your-devices) |
+| `github`, `github login / logout` | signing in with GitHub |
+| `id`, `teams ls / create / join / recover / sync / members / add / remove / role / access / token / leave` | [teams](#teams) |
 | `approve`, `agents ls / revoke`, `mcp …` | [AI agents](/projects/detour/wiki/command-line/agents) |
