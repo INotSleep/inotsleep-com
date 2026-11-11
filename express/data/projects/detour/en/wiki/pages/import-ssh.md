@@ -10,6 +10,7 @@ Open **Hosts** and click **Import from ~/.ssh** (when the list isn't empty, it's
 - **`HostName`, `Port`, `User`, `IdentityFile`** become the host's address, port, user and key.
 - **`ProxyJump`**, including chains, becomes a [jump host](/projects/detour/wiki/everyday/proxies). Jump hosts that aren't in your config are imported too.
 - **Keys** named by `IdentityFile` are imported into [Keys](/projects/detour/wiki/everyday/keys). A key with a passphrase is imported as is; Detour asks for the passphrase when it's first used.
+- A host with no `IdentityFile` gets the key `ssh` itself would use: the first of `~/.ssh/id_rsa`, `id_ecdsa` and `id_ed25519` that exists. With none of them, or with `IdentityFile none`, it logs in with **ssh-agent**.
 - **`~/.ssh/known_hosts`**: plain entries become trusted server keys, so you don't confirm them again. Hashed entries, wildcard patterns and `@cert-authority` or `@revoked` lines are skipped.
 
 Imported hosts go into the group **SSH config**; rename or regroup them afterwards as you like.
