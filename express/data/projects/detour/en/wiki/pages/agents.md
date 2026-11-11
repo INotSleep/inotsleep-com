@@ -41,7 +41,7 @@ You see which agent asks, why, for which hosts and what it wants to do there. Un
 
 Access lasts 2 hours, a day, 7 days, or until you revoke it.
 
-Without the Detour window, the agent tells you to run `detour approve` in your terminal: it shows the same request and asks the same questions there. If the window was in the tray, it comes forward with the request.
+The window comes forward with the request, also when an agent started Detour itself: Detour waits in the tray then. Where no window can show (a server, an SSH session), the agent tells you to run `detour approve` in your terminal: it shows the same request and asks the same questions there.
 
 ## Commands an agent runs
 

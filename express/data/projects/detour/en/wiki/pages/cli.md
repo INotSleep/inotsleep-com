@@ -40,6 +40,8 @@ detour quit     # stop the core: every session and tunnel ends
 
 A locked core with nothing running stops by itself after a few minutes.
 
+On a computer with a desktop, a core that `detour` or an [AI agent](/projects/detour/wiki/command-line/agents) started brings Detour up in the tray, its window hidden: the tray shows the core is running, and a request from an agent or a terminal opens the window. It goes away with the core unless you opened it. Over SSH, and with `DETOUR_NO_TRAY` set, it doesn't.
+
 ## Trusted terminals
 
 Any program on your computer can run `detour`, an AI agent in your shell included. So `detour` works only in a terminal you trusted:
