@@ -69,6 +69,20 @@ A host is named by its name or its id. A name that matches several hosts is an e
 
 `hosts add` logs in with ssh-agent unless you give `--key`, `--password` (asked right away; leave it empty to be asked on every connection) or `--agent`. `--via` goes through a jump host, `--proxy` through a [saved proxy](#proxies), `--forward-agent true` forwards ssh-agent.
 
+## Groups
+
+```bash
+detour groups ls                                # in order, with the proxy and login each gives
+detour groups add Databases
+detour groups move Databases --before Web       # or --last
+detour hosts move db1 --group Databases --before db2
+detour -T acme groups ls --mine                 # your own grouping of a team's hosts
+detour -T acme groups set Production --proxy my-vpn --user vlad --key laptop
+detour -T acme groups set Production --team-proxy office   # for everyone in the team
+```
+
+`rename` and `rm` work like `add`; `--mine` works with all of them and with `hosts move`. [Groups of hosts](/projects/detour/wiki/everyday/groups) says which proxy and login a host ends up with.
+
 ## Working on a host
 
 ```bash
