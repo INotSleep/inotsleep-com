@@ -65,7 +65,7 @@ detour hosts export web --keys ~/.ssh/detour -o ~/.ssh/detour.conf   # with thei
 
 A host is named by its name or its id. A name that matches several hosts is an error that lists them.
 
-`hosts add` logs in with ssh-agent unless you give `--key`, `--password` (asked right away; leave it empty to be asked on every connection) or `--agent`. `--via` goes through a jump host, `--forward-agent true` forwards ssh-agent.
+`hosts add` logs in with ssh-agent unless you give `--key`, `--password` (asked right away; leave it empty to be asked on every connection) or `--agent`. `--via` goes through a jump host, `--proxy` through a [saved proxy](#proxies), `--forward-agent true` forwards ssh-agent.
 
 ## Working on a host
 
@@ -106,6 +106,21 @@ detour keys export laptop -o ~/.ssh/laptop
 detour snippets add disk -- df -h
 detour snippets run disk web
 ```
+
+## Proxies
+
+```bash
+detour proxies ls
+detour proxies add nl --link 'vless://…'             # a vless:// link
+detour proxies add office --wireguard office.conf    # a WireGuard config; - reads it from stdin
+detour proxies add corp --http proxy.corp:3128 --user me   # the password is asked
+detour proxies check nl                              # how long a connection through it takes
+detour proxies export nl                             # back as a link or config, keys included
+detour proxies rm nl                                 # its hosts connect directly
+detour hosts edit db --proxy office                  # --proxy none: directly
+```
+
+[Jump hosts and proxies](/projects/detour/wiki/everyday/proxies) lists the kinds of proxy and what of VLESS is supported.
 
 ## Sync between your devices
 
@@ -175,6 +190,7 @@ Messages and help are in English or Russian, as your system is; `DETOUR_LANG=en`
 | `ls`, `hosts ls / add / edit / rm / import / export` | hosts |
 | `ssh`, `exec`, `cp`, `files ls / mkdir / rm / mv / chmod` | working on a host |
 | `tunnels ls / up / down` | tunnels |
+| `proxies ls / add / rm / check / export` | [proxies](#proxies) |
 | `keys ls / gen / import / export / rm` | keys |
 | `snippets ls / add / rm / run` | snippets |
 | `sync`, `sync enable / join / add-device / recovery-key / token / disable` | [sync between your devices](#sync-between-your-devices) |
