@@ -212,4 +212,4 @@ Messages and help are in English or Russian, as your system is; `DETOUR_LANG=en`
 | `sync`, `sync enable / join / add-device / recovery-key / token / disable` | [sync between your devices](#sync-between-your-devices) |
 | `github`, `github login / logout` | signing in with GitHub |
 | `id`, `teams ls / create / join / recover / sync / members / add / remove / role / access / token / leave` | [teams](#teams) |
-| `approve`, `agents ls / revoke`, `mcp …` | [AI agents](/projects/detour/wiki/command-line/agents) |
+| `approve`, `agents ls / add / edit / revoke`, `mcp …` | [AI agents](/projects/detour/wiki/command-line/agents) |
