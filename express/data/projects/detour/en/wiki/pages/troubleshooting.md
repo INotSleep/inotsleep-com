@@ -67,6 +67,16 @@
 | Can't reach the update server | Check the network; GitHub may be blocked where you are. |
 | The update failed the signature check | Don't install it. Download the release from GitHub yourself and report it. |
 
+## The log
+
+Detour writes its errors to a log: those of the core, the window and the command line, and what made one of them crash, with where it happened. Never what you type or a password.
+
+- **Settings → About → Log → Open** opens its folder.
+- `detour logs` prints its end (`-n 200` for more lines); `detour logs --path` prints where it is.
+- It is `detour.log` in Detour's [data folder](/projects/detour/wiki/reference/data): `%APPDATA%\detour\Detour\data\logs` on Windows, `~/Library/Application Support/dev.detour.Detour/logs` on macOS, `~/.local/share/detour/logs` on Linux. When it grows past 2 MB it becomes `detour.1.log`.
+
+If the window breaks, it shows the error instead of an empty window: **Reload the window** opens it again, **Copy the error** copies it with the end of the log.
+
 ## Still stuck
 
-Open an issue at [github.com/INotSleep/Detour/issues](https://github.com/INotSleep/Detour/issues) with the message you see, your system and Detour version (**Settings → About**).
+Open an issue at [github.com/INotSleep/Detour/issues](https://github.com/INotSleep/Detour/issues) with the message you see, your system, Detour version (**Settings → About**) and the end of the log (`detour logs`).
