@@ -11,7 +11,7 @@ Your personal vault can follow you to your other computers. It syncs through sto
 ## Add another device
 
 1. On a device that already syncs: **Settings → Sync → Another device → Add**. Detour shows a one-time code like `ABCD-EFGH-JKMN-PQRS`, valid for one hour.
-2. On the new device, after creating its vault: **Settings → Sync → Connect**. Choose the same folder or repository and enter the code.
+2. On the new device, after creating its vault: **Settings → Sync → Turn on**, and choose the same folder or repository. Detour finds your vault there and asks for the code; enter it and click **Connect**.
 
 The recovery key works in place of the code when no other device is at hand.
 
