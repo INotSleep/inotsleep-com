@@ -17,7 +17,7 @@ Proxies are set up once, in **Proxies** in the sidebar, and any number of hosts 
 | **SOCKS5** | a SOCKS5 proxy, with or without a login |
 | **HTTP** | an HTTP proxy that tunnels with `CONNECT` |
 | **WireGuard** | a WireGuard server. Only Detour's own connections go through it: no system VPN, no driver, no administrator rights |
-| **VLESS** | a VLESS server (Xray and compatible): over TCP or **XHTTP**, with no security, **TLS** or **REALITY**, and **XTLS Vision** over TCP |
+| **VLESS** | a VLESS server (Xray and compatible): over TCP or **XHTTP**, with no security, **TLS** or **REALITY**, **VLESS Encryption** and **XTLS Vision** |
 
 To add one:
 
@@ -39,16 +39,19 @@ A config with several `[Peer]` sections isn't supported.
 
 ### VLESS
 
-What a `vless://` link holds is used as it is: the server, the user id, `security`, `sni`, `pbk` and `sid` for REALITY, `flow`, `type`, and for XHTTP `path`, `host`, `mode` and `extra` (the padding, placement and upload settings). Parameters Detour doesn't need (such as `fp` or `spx`) are kept, so a copied link is the same as the pasted one.
+What a `vless://` link holds is used as it is: the server, the user id, `encryption`, `security`, `sni`, `pbk` and `sid` for REALITY, `flow`, `type`, and for XHTTP `path`, `host`, `mode` and `extra` (the padding, placement and upload settings). Parameters Detour doesn't need (such as `fp` or `spx`) are kept, so a copied link is the same as the pasted one.
 
 | Setting | Supported |
 |---|---|
 | `security` | `none`, `tls` (with the system's trusted certificates, or one pinned by `pcs`), `reality` |
 | `type` | `tcp` (`raw`), `xhttp` |
 | XHTTP `mode` | `auto`, `stream-one`, `stream-up`, `packet-up`. Over plain HTTP or TLS with `alpn=http/1.1`, only `packet-up` |
-| `flow` | `xtls-rprx-vision`, over TCP with TLS or REALITY |
+| `encryption` | `none`, or VLESS Encryption: `mlkem768x25519plus` with `native`, `xorpub` or `random`, the server's X25519 and ML-KEM-768 keys (one or a chain of them) and its padding settings |
+| `flow` | `xtls-rprx-vision`, over TCP with TLS or REALITY, or over any transport with VLESS Encryption |
 
-Not supported: `encryption` other than `none`, WebSocket, gRPC and other transports, XHTTP over HTTP/3, and `downloadSettings`. A link that uses one of them is refused with what it uses.
+With VLESS Encryption, Detour does the full key exchange on every connection, also when the link says `0rtt`: the server takes it either way. In the proxy dialog it's the **VLESS encryption** field; paste the client's `encryption` value there.
+
+Not supported: WebSocket, gRPC and other transports, XHTTP over HTTP/3, and `downloadSettings`. A link that uses one of them is refused with what it uses.
 
 ## Teams
 
