@@ -22,3 +22,5 @@ Imported hosts go into the group **SSH config**; rename or regroup them afterwar
 - Hosts already in Detour are marked **Already added** and skipped.
 
 Nothing in `~/.ssh` is changed.
+
+Hosts from another Detour come in a [Detour file](/projects/detour/wiki/getting-started/export#as-a-detour-file): **From a Detour file…** in the same dialog.

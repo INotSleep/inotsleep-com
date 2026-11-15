@@ -63,6 +63,8 @@ detour hosts rm web
 detour hosts import             # everything new from ~/.ssh/config; or name the aliases
 detour hosts export web db > detour.conf               # as ~/.ssh/config entries
 detour hosts export web --keys ~/.ssh/detour -o ~/.ssh/detour.conf   # with their keys as files
+detour hosts export --file hosts.detour                 # to a Detour file with keys, passwords and proxies
+detour hosts import --file hosts.detour                 # from one
 ```
 
 A host is named by its name or its id. A name that matches several hosts is an error that lists them.

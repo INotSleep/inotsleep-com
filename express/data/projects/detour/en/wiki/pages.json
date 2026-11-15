@@ -27,6 +27,11 @@
         "type": "page",
         "label": "Importing from ~/.ssh",
         "id": "import-ssh"
+      },
+      {
+        "type": "page",
+        "label": "Exporting hosts",
+        "id": "export"
       }
     ]
   },
