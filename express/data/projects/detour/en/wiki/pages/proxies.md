@@ -49,6 +49,8 @@ What a `vless://` link holds is used as it is: the server, the user id, `encrypt
 | `encryption` | `none`, or VLESS Encryption: `mlkem768x25519plus` with `native`, `xorpub` or `random`, the server's X25519 and ML-KEM-768 keys (one or a chain of them) and its padding settings |
 | `flow` | `xtls-rprx-vision`, over TCP with TLS or REALITY, or over any transport with VLESS Encryption |
 
+Over XHTTP with HTTP/2, sessions through the same proxy share connections, as Xray's client does: by the link's `xmux` (`maxConnections`, `maxConcurrency`, `cMaxReuseTimes`, `hMaxRequestTimes`, `hMaxReusableSecs`, `hKeepAlivePeriod`), or with none, up to 3 connections, each taking new sessions for 30 to 50 minutes. A new session then doesn't wait for a new connection, which matters with a server that slows down new connections.
+
 With VLESS Encryption, Detour does the full key exchange on every connection, also when the link says `0rtt`: the server takes it either way. In the proxy dialog it's the **VLESS encryption** field; paste the client's `encryption` value there.
 
 Not supported: WebSocket, gRPC and other transports, XHTTP over HTTP/3, and `downloadSettings`. A link that uses one of them is refused with what it uses.
