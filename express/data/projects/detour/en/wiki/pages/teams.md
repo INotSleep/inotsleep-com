@@ -11,7 +11,7 @@ Everyone has a **Detour ID**: a long string starting with `detour1`, the public 
 ## Create a team
 
 1. Open the vault switcher at the top of the sidebar and choose **Create team**.
-2. Give it a **Name**, choose the storage (an **empty folder** or a **Git repository**, see [Storage](/projects/detour/wiki/sync-and-teams/storage)) and **Your name in the team**.
+2. Give it a **Name**, choose the storage (a **Git repository**, a **cloud drive** folder or an **empty folder**, see [Storage](/projects/detour/wiki/sync-and-teams/storage)) and **Your name in the team**.
 3. Save the **recovery key** that Detour shows, then confirm its last 4 characters. Without it the team can't be recovered if every owner loses their devices.
 
 You are the team's **Owner**.

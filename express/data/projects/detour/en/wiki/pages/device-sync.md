@@ -1,6 +1,6 @@
 # Sync between your devices
 
-Your personal vault can follow you to your other computers. It syncs through storage you already have: an empty folder that a sync tool keeps in step (Syncthing, Dropbox, OneDrive, a network share), or a private Git repository. The storage only ever sees encrypted, signed files. See [Storage: Git or a folder](/projects/detour/wiki/sync-and-teams/storage).
+Your personal vault can follow you to your other computers. It syncs through storage you already have: a folder in OneDrive, Google Drive or Dropbox, an empty folder that a sync tool keeps in step (Syncthing, a network share), or a private Git repository. The storage only ever sees encrypted, signed files. See [Storage: Git, a cloud drive or a folder](/projects/detour/wiki/sync-and-teams/storage).
 
 ## Turn it on (first device)
 

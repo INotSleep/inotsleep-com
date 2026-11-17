@@ -5,10 +5,10 @@
 Detour connects only to:
 
 - the servers you add, and the jump hosts and proxies you set for them;
-- the Git repositories or folders you choose for sync and teams;
+- the Git repositories, cloud drives (OneDrive, Google Drive, Dropbox) or folders you choose for sync and teams;
 - GitHub releases, to check for updates. Turn this off with **Settings → About → Check at startup**.
 
-There are no accounts, no analytics and no telemetry.
+There are no accounts, no analytics and no telemetry. Detour has no servers of its own: nothing you do in it reaches its developer. See the [Privacy policy](/projects/detour/wiki/reference/privacy).
 
 **Settings → Detour in AI clients** and `detour mcp add` write to the MCP settings of the AI clients you pick (for example `~/.claude.json` or `~/.codex/config.toml`), and nowhere else. AI agents get from Detour only what you allow them, and never a password or key.
 

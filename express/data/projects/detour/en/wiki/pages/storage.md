@@ -1,4 +1,4 @@
-# Storage: Git or a folder
+# Storage: Git, a cloud drive or a folder
 
 Teams and your synced personal vault are kept in storage you provide. Detour treats it as untrusted: it holds only encrypted, signed files, and every client checks that nothing was forged, hidden or rolled back.
 
@@ -27,6 +27,22 @@ The sign-in only reaches the repositories you installed Detour Sync on, with rea
 If a token expires or is revoked, the team page shows it and offers **New token**.
 
 Detour pushes after every change and pulls every 20 seconds. A leaked repository login gives access to ciphertext only.
+
+## Cloud drive
+
+Detour can keep a team or your synced vault in a folder of **OneDrive**, **Google Drive** or **Dropbox** by itself, through the drive's API: no drive app needed, and it works the same on every device, phones included.
+
+1. Choose **Cloud drive** as the storage, then the **Service**.
+2. Click **Sign in to OneDrive** (or Google Drive, Dropbox). Your browser opens the drive's sign-in page; sign in and allow access. Detour notices by itself once it's done.
+3. **Choose** a folder (your folders and those shared with you; **New folder** makes one), or paste **a link to a shared folder** and **Open** it. When creating, the folder must be empty; when joining, choose the folder that holds the team.
+
+To share a team, share its folder with the members in the drive itself (with edit rights) and send them the link.
+
+The sign-in belongs to this device: it's kept in your personal vault but doesn't sync, and each device signs in on its own. It renews itself; if the drive stops accepting it, the team page or **Settings → Sync** offers **Sign in to OneDrive again**. Sign out from the drive's own account page (see [Privacy policy](/projects/detour/wiki/reference/privacy)) to take the access back.
+
+A team kept on one device in a folder its drive app syncs (OneDrive's, say) can be opened on another device through the drive: on the team's card choose **From a cloud drive** and pick the same folder.
+
+Detour pulls every 20 seconds and pushes after every change. Each device writes only its own files and never replaces a file it didn't write, so two devices never overwrite each other.
 
 ## Shared folder
 

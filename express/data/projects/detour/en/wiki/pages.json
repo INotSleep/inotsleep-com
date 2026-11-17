@@ -99,7 +99,7 @@
       },
       {
         "type": "page",
-        "label": "Storage: Git or a folder",
+        "label": "Storage: Git, a cloud drive or a folder",
         "id": "storage"
       },
       {
@@ -150,6 +150,11 @@
         "type": "page",
         "label": "Data and privacy",
         "id": "data"
+      },
+      {
+        "type": "page",
+        "label": "Privacy policy",
+        "id": "privacy"
       },
       {
         "type": "page",
