@@ -21,7 +21,7 @@ sudo mv detour /usr/local/bin/
 detour --version
 ```
 
-The macOS archive isn't notarized: run `xattr -d com.apple.quarantine detour` once before using it.
+The macOS archive is notarized from 0.5.0. Before that it wasn't: with an older one, run `xattr -d com.apple.quarantine detour` once before using it.
 
 ## The core
 

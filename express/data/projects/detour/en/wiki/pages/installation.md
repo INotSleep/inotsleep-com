@@ -18,7 +18,9 @@ The Windows installers and the app are signed by "Open Source Developer Vladysla
 
 ## First start on macOS
 
-The app isn't notarized yet. If macOS refuses to open it, run this once in Terminal after moving Detour to Applications:
+From 0.5.0 the app and the command line are signed with an Apple Developer ID and notarized by Apple, so they open like any other app.
+
+Earlier versions weren't. If one of them won't open, run this once in Terminal after moving Detour to Applications:
 
 ```bash
 xattr -cr /Applications/Detour.app
