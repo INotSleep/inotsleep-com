@@ -12,6 +12,16 @@ Download the installer for your system from the [latest release](https://github.
 
 The installers also put the `detour` [command line](/projects/detour/wiki/command-line/cli) on your `PATH`. For a server without a desktop, the release has it alone: `detour-cli-<version>-<system>`.
 
+## Homebrew
+
+On macOS, Detour is in its own Homebrew tap:
+
+```bash
+brew install --cask inotsleep/tap/detour
+```
+
+It installs `Detour.app` and puts `detour` on your `PATH`. Detour updates itself; `brew upgrade` works too.
+
 ## iPhone and iPad
 
 Get [Detour SSH](https://apps.apple.com/app/id6836001774) from the App Store (iOS and iPadOS 17 or later). To bring your vault and teams over, turn on [sync](/projects/detour/wiki/sync-and-teams/device-sync) on the phone, or scan the QR from **Settings → Sync → Another device → Add** on your computer.

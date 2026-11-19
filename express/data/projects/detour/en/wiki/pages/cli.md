@@ -10,7 +10,7 @@ The installers put `detour` next to the app and on your `PATH`:
 |---|---|
 | Windows | the install folder; the `.exe` installer adds it to your `PATH`, the `.msi` to the system's. Open a new terminal after installing |
 | Debian, Ubuntu, Fedora | `/usr/bin/detour` |
-| macOS | inside `Detour.app`. **Settings → Command line → Install** links it into `/usr/local/bin` (macOS asks for your password) |
+| macOS | inside `Detour.app`. **Settings → Command line → Install** links it into `/usr/local/bin` (macOS asks for your password); installed with [Homebrew](/projects/detour/wiki/getting-started/installation#homebrew) it is on the `PATH` already |
 | AppImage | not on the `PATH`: use the archive below |
 
 For a server without a desktop, download `detour` alone from the [latest release](https://github.com/INotSleep/Detour/releases/latest): `detour-cli-<version>-linux-x86_64.tar.gz`, `linux-arm64`, `macos` or `windows-x86_64.zip`. Each comes with a `.sha256` to check it against.
